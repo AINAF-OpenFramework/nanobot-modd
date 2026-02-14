@@ -89,8 +89,10 @@ from pathlib import Path
 from nanobot.agent.memory import MemoryStore
 from nanobot.agent.memory_types import ContentType
 
-# Initialize memory store
-workspace = Path("~/.nanobot/workspace").expanduser()
+# Initialize memory store with your workspace path
+# Note: Update this path to match your actual nanobot workspace
+# Default is typically ~/.nanobot/workspace
+workspace = Path.home() / ".nanobot" / "workspace"
 config = {
     "provider": "mem0",
     "mem0_user_id": "my_user",

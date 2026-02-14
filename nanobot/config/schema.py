@@ -236,6 +236,7 @@ class MemoryConfig(BaseModel):
     mem0_user_id: str = "nanobot_user"  # User ID for mem0
     mem0_org_id: str = ""  # Organization ID for mem0 (optional)
     mem0_project_id: str = ""  # Project ID for mem0 (optional)
+    mem0_version: str = "v1.1"  # mem0 API version
     
     # Vector embeddings settings
     embedding_model: str = "text-embedding-3-small"  # OpenAI model or other

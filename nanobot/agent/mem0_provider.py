@@ -48,8 +48,9 @@ class Mem0Provider:
             from mem0 import Memory
             
             # Configure mem0 based on settings
+            # Note: Using mem0 v1.1 API. Update this version string when upgrading mem0.
             mem0_config = {
-                "version": "v1.1",
+                "version": self.config.get("mem0_version", "v1.1"),
             }
             
             # Add API key if provided (for cloud)

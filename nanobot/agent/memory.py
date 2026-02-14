@@ -12,6 +12,9 @@ from nanobot.utils.helpers import ensure_dir
 
 logger = logging.getLogger(__name__)
 
+# Constants
+MAX_CONTENT_PREVIEW_LENGTH = 200  # Maximum length for content preview in retrieval
+
 
 class MemoryStore:
     """
@@ -320,8 +323,8 @@ class MemoryStore:
             # Show hierarchy depth
             indent = "  " * node.depth
             
-            context_str += f"{indent}- **{type_prefix}[{timestamp_str}] {tags_str}**: {node.content[:200]}"
-            if len(node.content) > 200:
+            context_str += f"{indent}- **{type_prefix}[{timestamp_str}] {tags_str}**: {node.content[:MAX_CONTENT_PREVIEW_LENGTH]}"
+            if len(node.content) > MAX_CONTENT_PREVIEW_LENGTH:
                 context_str += "..."
             context_str += "\n"
         

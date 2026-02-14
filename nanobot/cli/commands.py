@@ -301,6 +301,22 @@ def _make_provider(config):
 # ============================================================================
 
 
+def _get_memory_config(config: "Config") -> dict:
+    """Extract memory configuration from global config."""
+    return {
+        "enabled": config.memory.enabled,
+        "provider": config.memory.provider,
+        "top_k": config.memory.top_k,
+        "mem0_api_key": config.memory.mem0_api_key,
+        "mem0_user_id": config.memory.mem0_user_id,
+        "mem0_org_id": config.memory.mem0_org_id,
+        "mem0_project_id": config.memory.mem0_project_id,
+        "embedding_model": config.memory.embedding_model,
+        "embedding_dim": config.memory.embedding_dim,
+        "use_hybrid_search": config.memory.use_hybrid_search,
+    }
+
+
 @app.command()
 def gateway(
     port: int = typer.Option(18790, "--port", "-p", help="Gateway port"),
@@ -331,20 +347,6 @@ def gateway(
     cron_store_path = get_data_dir() / "cron" / "jobs.json"
     cron = CronService(cron_store_path)
     
-    # Prepare memory config
-    memory_config = {
-        "enabled": config.memory.enabled,
-        "provider": config.memory.provider,
-        "top_k": config.memory.top_k,
-        "mem0_api_key": config.memory.mem0_api_key,
-        "mem0_user_id": config.memory.mem0_user_id,
-        "mem0_org_id": config.memory.mem0_org_id,
-        "mem0_project_id": config.memory.mem0_project_id,
-        "embedding_model": config.memory.embedding_model,
-        "embedding_dim": config.memory.embedding_dim,
-        "use_hybrid_search": config.memory.use_hybrid_search,
-    }
-    
     # Create agent with cron service
     agent = AgentLoop(
         bus=bus,
@@ -359,7 +361,7 @@ def gateway(
         cron_service=cron,
         restrict_to_workspace=config.tools.restrict_to_workspace,
         session_manager=session_manager,
-        memory_config=memory_config,
+        memory_config=_get_memory_config(config),
     )
     
     # Set cron callback (needs agent)
@@ -455,20 +457,6 @@ def agent(
     else:
         logger.disable("nanobot")
     
-    # Prepare memory config
-    memory_config = {
-        "enabled": config.memory.enabled,
-        "provider": config.memory.provider,
-        "top_k": config.memory.top_k,
-        "mem0_api_key": config.memory.mem0_api_key,
-        "mem0_user_id": config.memory.mem0_user_id,
-        "mem0_org_id": config.memory.mem0_org_id,
-        "mem0_project_id": config.memory.mem0_project_id,
-        "embedding_model": config.memory.embedding_model,
-        "embedding_dim": config.memory.embedding_dim,
-        "use_hybrid_search": config.memory.use_hybrid_search,
-    }
-    
     agent_loop = AgentLoop(
         bus=bus,
         provider=provider,
@@ -480,7 +468,7 @@ def agent(
         brave_api_key=config.tools.web.search.api_key or None,
         exec_config=config.tools.exec,
         restrict_to_workspace=config.tools.restrict_to_workspace,
-        memory_config=memory_config,
+        memory_config=_get_memory_config(config),
     )
     
     # Show spinner when logs are off (no output to miss); skip when logs are on
