@@ -2,15 +2,25 @@
 
 import uuid
 from datetime import datetime
+from enum import Enum
 from typing import Any
 
 from pydantic import BaseModel, Field
+
+
+class ContentType(str, Enum):
+    """Types of content that can be stored in memory nodes."""
+    TEXT = "text"
+    CODE = "code"
+    IMAGE = "image"
+    MIXED = "mixed"  # Contains multiple types
 
 
 class FractalNode(BaseModel):
     """
     A fractal memory node representing a lesson or knowledge piece.
     
+    Supports multi-modal content (text, code, images) and hierarchical relationships.
     Stored as lesson_X.json in archives directory.
     """
     
@@ -19,7 +29,18 @@ class FractalNode(BaseModel):
     tags: list[str] = Field(default_factory=list)
     content: str  # The core lesson/fact
     context_summary: str = ""  # Brief summary for the index
-    embedding: list[float] | None = None  # Placeholder for vector embeddings
+    embedding: list[float] | None = None  # Vector embeddings for semantic search
+    
+    # Multi-modal support
+    content_type: ContentType = ContentType.TEXT
+    mime_type: str | None = None  # For images: image/png, image/jpeg, etc.
+    language: str | None = None  # For code: python, javascript, etc.
+    binary_data: str | None = None  # Base64-encoded binary data for images
+    
+    # Hierarchical relationships
+    parent_id: str | None = None  # Parent node ID
+    children_ids: list[str] = Field(default_factory=list)  # Child node IDs
+    depth: int = 0  # Depth in the hierarchy (0 = root)
     
     class Config:
         json_encoders = {

@@ -226,10 +226,21 @@ class ToolsConfig(BaseModel):
 class MemoryConfig(BaseModel):
     """Fractal Memory and ALS configuration."""
     enabled: bool = True
-    provider: str = "local"  # or 'mem0', 'openai' (for embeddings)
+    provider: str = "local"  # 'local', 'mem0'
     top_k: int = 5  # Number of nodes to retrieve for context
     archive_dir: str = "archives"
     als_enabled: bool = True  # Active Learning State
+    
+    # mem0 specific settings
+    mem0_api_key: str = ""  # API key for mem0 cloud (optional)
+    mem0_user_id: str = "nanobot_user"  # User ID for mem0
+    mem0_org_id: str = ""  # Organization ID for mem0 (optional)
+    mem0_project_id: str = ""  # Project ID for mem0 (optional)
+    
+    # Vector embeddings settings
+    embedding_model: str = "text-embedding-3-small"  # OpenAI model or other
+    embedding_dim: int = 1536  # Dimension of embeddings
+    use_hybrid_search: bool = True  # Combine keyword and vector search
 
 
 class Config(BaseSettings):
