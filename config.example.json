@@ -1,0 +1,181 @@
+{
+  "agents": {
+    "defaults": {
+      "workspace": "~/.nanobot/workspace",
+      "model": "gemini/gemini-2.0-flash-exp",
+      "maxTokens": 8192,
+      "temperature": 0.7,
+      "maxToolIterations": 20,
+      "memoryWindow": 50
+    }
+  },
+  "channels": {
+    "whatsapp": {
+      "enabled": false,
+      "bridgeUrl": "ws://localhost:3001",
+      "bridgeToken": "",
+      "allowFrom": []
+    },
+    "telegram": {
+      "enabled": false,
+      "token": "",
+      "allowFrom": [],
+      "proxy": null
+    },
+    "discord": {
+      "enabled": false,
+      "token": "",
+      "allowFrom": [],
+      "gatewayUrl": "wss://gateway.discord.gg/?v=10&encoding=json",
+      "intents": 37377
+    },
+    "feishu": {
+      "enabled": false,
+      "appId": "",
+      "appSecret": "",
+      "encryptKey": "",
+      "verificationToken": "",
+      "allowFrom": []
+    },
+    "mochat": {
+      "enabled": false,
+      "corpId": "",
+      "agentId": "",
+      "secret": "",
+      "token": "",
+      "encodingAesKey": "",
+      "allowFrom": []
+    },
+    "dingtalk": {
+      "enabled": false,
+      "clientId": "",
+      "clientSecret": "",
+      "allowFrom": []
+    },
+    "email": {
+      "enabled": false,
+      "imapServer": "",
+      "imapPort": 993,
+      "smtpServer": "",
+      "smtpPort": 587,
+      "username": "",
+      "password": "",
+      "allowFrom": []
+    },
+    "slack": {
+      "enabled": false,
+      "appToken": "",
+      "userTokenReadOnly": true,
+      "groupPolicy": "mention",
+      "groupAllowFrom": [],
+      "dm": {
+        "enabled": false,
+        "allowFrom": []
+      }
+    },
+    "qq": {
+      "enabled": false,
+      "appId": "",
+      "secret": "",
+      "allowFrom": []
+    }
+  },
+  "providers": {
+    "custom": {
+      "apiKey": "",
+      "apiBase": null,
+      "extraHeaders": null
+    },
+    "anthropic": {
+      "apiKey": "",
+      "apiBase": null,
+      "extraHeaders": null
+    },
+    "openai": {
+      "apiKey": "sk-YOUR_OPENAI_API_KEY_HERE",
+      "apiBase": null,
+      "extraHeaders": null
+    },
+    "openrouter": {
+      "apiKey": "",
+      "apiBase": null,
+      "extraHeaders": null
+    },
+    "deepseek": {
+      "apiKey": "",
+      "apiBase": null,
+      "extraHeaders": null
+    },
+    "groq": {
+      "apiKey": "",
+      "apiBase": null,
+      "extraHeaders": null
+    },
+    "zhipu": {
+      "apiKey": "",
+      "apiBase": null,
+      "extraHeaders": null
+    },
+    "dashscope": {
+      "apiKey": "",
+      "apiBase": null,
+      "extraHeaders": null
+    },
+    "vllm": {
+      "apiKey": "",
+      "apiBase": null,
+      "extraHeaders": null
+    },
+    "gemini": {
+      "apiKey": "YOUR_GEMINI_API_KEY_HERE",
+      "apiBase": null,
+      "extraHeaders": null
+    },
+    "moonshot": {
+      "apiKey": "",
+      "apiBase": null,
+      "extraHeaders": null
+    },
+    "minimax": {
+      "apiKey": "",
+      "apiBase": null,
+      "extraHeaders": null
+    },
+    "aihubmix": {
+      "apiKey": "",
+      "apiBase": null,
+      "extraHeaders": null
+    }
+  },
+  "gateway": {
+    "host": "0.0.0.0",
+    "port": 18790
+  },
+  "tools": {
+    "web": {
+      "search": {
+        "apiKey": "",
+        "maxResults": 5
+      }
+    },
+    "exec": {
+      "timeout": 60
+    },
+    "restrictToWorkspace": false
+  },
+  "memory": {
+    "enabled": true,
+    "provider": "local",
+    "topK": 5,
+    "archiveDir": "archives",
+    "alsEnabled": true,
+    "mem0ApiKey": "",
+    "mem0UserId": "nanobot_user",
+    "mem0OrgId": "",
+    "mem0ProjectId": "",
+    "mem0Version": "v1.1",
+    "embeddingModel": "text-embedding-3-small",
+    "embeddingDim": 1536,
+    "useHybridSearch": true
+  }
+}
