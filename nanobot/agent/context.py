@@ -25,19 +25,26 @@ class ContextBuilder:
         self.memory = MemoryStore(workspace)
         self.skills = SkillsLoader(workspace)
     
-    def build_system_prompt(self, skill_names: list[str] | None = None) -> str:
+    def build_system_prompt(self, skill_names: list[str] | None = None, user_query: str = "") -> str:
         """
-        Build the system prompt from bootstrap files, memory, and skills.
+        Build the system prompt using the 6-Block Context Workflow.
+        
+        This implements the context-engineered workflow with:
+        1. System & Persona (Static)
+        2. Active Learning State & Resources (Dynamic)
+        3. Tools/Skills (Capabilities)
+        4. (History and User Message handled separately in build_messages)
         
         Args:
             skill_names: Optional list of skills to include.
+            user_query: Current user query for relevant node retrieval.
         
         Returns:
-            Complete system prompt.
+            Complete system prompt with structured blocks.
         """
         parts = []
         
-        # Core identity
+        # Block 1: System & Persona (Static)
         parts.append(self._get_identity())
         
         # Bootstrap files
@@ -45,20 +52,38 @@ class ContextBuilder:
         if bootstrap:
             parts.append(bootstrap)
         
-        # Memory context
-        memory = self.memory.get_memory_context()
-        if memory:
-            parts.append(f"# Memory\n\n{memory}")
+        # Block 2: Active Learning State & Resources (Dynamic)
+        # Combines ALS + Top-K Fractal Nodes + Core Memory.md
+        resource_parts = []
         
-        # Skills - progressive loading
-        # 1. Always-loaded skills: include full content
+        # ALS Context
+        als_content = self.memory.get_als_context()
+        if als_content:
+            resource_parts.append(als_content)
+        
+        # Core Memory (legacy MEMORY.md)
+        core_memory = self.memory.read_long_term()
+        if core_memory:
+            resource_parts.append(f"## Long-term Memory\n{core_memory}")
+        
+        # Fractal Nodes (token-efficient top-K retrieval)
+        if user_query:
+            fractal_content = self.memory.retrieve_relevant_nodes(user_query, k=5)
+            if fractal_content:
+                resource_parts.append(fractal_content)
+        
+        if resource_parts:
+            parts.append(f"# RESOURCES & MEMORY\n\n" + "\n\n".join(resource_parts))
+        
+        # Block 3: Tools/Skills (Capabilities)
+        # Always-loaded skills: include full content
         always_skills = self.skills.get_always_skills()
         if always_skills:
             always_content = self.skills.load_skills_for_context(always_skills)
             if always_content:
                 parts.append(f"# Active Skills\n\n{always_content}")
         
-        # 2. Available skills: only show summary (agent uses read_file to load)
+        # Available skills: only show summary (agent uses read_file to load)
         skills_summary = self.skills.build_skills_summary()
         if skills_summary:
             parts.append(f"""# Skills
@@ -131,7 +156,7 @@ To recall past events, grep {workspace_path}/memory/HISTORY.md"""
         chat_id: str | None = None,
     ) -> list[dict[str, Any]]:
         """
-        Build the complete message list for an LLM call.
+        Build the complete message list for an LLM call using 6-block structure.
 
         Args:
             history: Previous conversation messages.
@@ -142,20 +167,20 @@ To recall past events, grep {workspace_path}/memory/HISTORY.md"""
             chat_id: Current chat/user ID.
 
         Returns:
-            List of messages including system prompt.
+            List of messages including system prompt with 6-block context.
         """
         messages = []
 
-        # System prompt
-        system_prompt = self.build_system_prompt(skill_names)
+        # Block 1-3: System prompt (with user query for fractal node retrieval)
+        system_prompt = self.build_system_prompt(skill_names, user_query=current_message)
         if channel and chat_id:
             system_prompt += f"\n\n## Current Session\nChannel: {channel}\nChat ID: {chat_id}"
         messages.append({"role": "system", "content": system_prompt})
 
-        # History
+        # Block 4: Assistant Messages / History (Short-term)
         messages.extend(history)
 
-        # Current message (with optional image attachments)
+        # Block 5: User Message (The Trigger)
         user_content = self._build_user_content(current_message, media)
         messages.append({"role": "user", "content": user_content})
 
