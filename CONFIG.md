@@ -85,7 +85,6 @@ Configure API keys and endpoints for different LLM providers:
 - `dashscope` - Alibaba DashScope (Qwen models)
 - `moonshot` - Moonshot AI (Kimi)
 - `minimax` - MiniMax API
-- `groq` - Groq API
 - `vllm` - Local vLLM deployment
 - `aihubmix` - AiHubMix gateway
 - `custom` - Any OpenAI-compatible endpoint
