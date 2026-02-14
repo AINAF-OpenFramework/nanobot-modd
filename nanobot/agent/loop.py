@@ -3,23 +3,22 @@
 import asyncio
 import json
 from pathlib import Path
-from typing import Any
 
 from loguru import logger
 
+from nanobot.agent.context import ContextBuilder
+from nanobot.agent.memory import MemoryStore
+from nanobot.agent.subagent import SubagentManager
+from nanobot.agent.tools.cron import CronTool
+from nanobot.agent.tools.filesystem import EditFileTool, ListDirTool, ReadFileTool, WriteFileTool
+from nanobot.agent.tools.message import MessageTool
+from nanobot.agent.tools.registry import ToolRegistry
+from nanobot.agent.tools.shell import ExecTool
+from nanobot.agent.tools.spawn import SpawnTool
+from nanobot.agent.tools.web import WebFetchTool, WebSearchTool
 from nanobot.bus.events import InboundMessage, OutboundMessage
 from nanobot.bus.queue import MessageBus
 from nanobot.providers.base import LLMProvider
-from nanobot.agent.context import ContextBuilder
-from nanobot.agent.tools.registry import ToolRegistry
-from nanobot.agent.tools.filesystem import ReadFileTool, WriteFileTool, EditFileTool, ListDirTool
-from nanobot.agent.tools.shell import ExecTool
-from nanobot.agent.tools.web import WebSearchTool, WebFetchTool
-from nanobot.agent.tools.message import MessageTool
-from nanobot.agent.tools.spawn import SpawnTool
-from nanobot.agent.tools.cron import CronTool
-from nanobot.agent.memory import MemoryStore
-from nanobot.agent.subagent import SubagentManager
 from nanobot.session.manager import SessionManager
 
 
@@ -51,7 +50,6 @@ class AgentLoop:
         session_manager: SessionManager | None = None,
     ):
         from nanobot.config.schema import ExecToolConfig
-        from nanobot.cron.service import CronService
         self.bus = bus
         self.provider = provider
         self.workspace = workspace
@@ -274,6 +272,10 @@ class AgentLoop:
                             tools_used=tools_used if tools_used else None)
         self.sessions.save(session)
         
+        # --- NEW: Fractal Memory Reflection Hook ---
+        # Trigger reflection if significant tools were used or task completed
+        await self._trigger_reflection(msg.content, final_content, tools_used)
+        
         return OutboundMessage(
             channel=msg.channel,
             chat_id=msg.chat_id,
@@ -446,6 +448,70 @@ Respond with ONLY valid JSON, no markdown fences."""
             logger.info(f"Memory consolidation done, session trimmed to {len(session.messages)} messages")
         except Exception as e:
             logger.error(f"Memory consolidation failed: {e}")
+    
+    async def _trigger_reflection(
+        self,
+        user_message: str,
+        assistant_response: str,
+        tools_used: list[str]
+    ) -> None:
+        """
+        Trigger Fractal Memory reflection and ALS updates.
+        
+        This method decides whether to save a fractal node based on:
+        - Keywords in the conversation ("remember", "important", "learn")
+        - Significant tool usage (write_file, exec, etc.)
+        - Task completion indicators
+        
+        Args:
+            user_message: The user's message
+            assistant_response: The assistant's response
+            tools_used: List of tools that were executed
+        """
+        # Keywords that trigger memory capture
+        memory_keywords = ["remember", "important", "learned", "note", "save this"]
+        should_remember = any(kw in user_message.lower() for kw in memory_keywords)
+        
+        # Significant tools that warrant memory capture
+        significant_tools = ["write_file", "exec", "spawn"]
+        used_significant_tools = any(tool in tools_used for tool in significant_tools)
+        
+        # Only trigger reflection if there's something worth remembering
+        if not (should_remember or used_significant_tools):
+            return
+        
+        try:
+            memory = MemoryStore(self.workspace)
+            
+            # Extract tags from user message (simple keyword extraction)
+            words = user_message.lower().split()
+            tags = [w.strip(".,!?;:") for w in words if len(w) > 4][:5]
+            
+            # Create a summary
+            summary = user_message[:100] + ("..." if len(user_message) > 100 else "")
+            
+            # Determine content based on context
+            if should_remember:
+                content = f"User request: {user_message}\nAgent response: {assistant_response[:200]}"
+            else:
+                content = f"Task completed using {', '.join(tools_used)}: {summary}"
+            
+            # Save fractal node
+            node = memory.save_fractal_node(
+                content=content,
+                tags=tags,
+                summary=summary
+            )
+            
+            # Update ALS with reflection
+            memory.update_als(
+                reflection=f"Completed interaction involving {', '.join(tools_used) if tools_used else 'conversation'}"
+            )
+            
+            logger.info(f"Reflection captured: node {node.id}")
+            
+        except Exception as e:
+            logger.warning(f"Reflection failed: {e}")
 
     async def process_direct(
         self,
