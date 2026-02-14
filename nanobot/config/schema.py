@@ -223,6 +223,15 @@ class ToolsConfig(BaseModel):
     restrict_to_workspace: bool = False  # If true, restrict all tool access to workspace directory
 
 
+class MemoryConfig(BaseModel):
+    """Fractal Memory and ALS configuration."""
+    enabled: bool = True
+    provider: str = "local"  # or 'mem0', 'openai' (for embeddings)
+    top_k: int = 5  # Number of nodes to retrieve for context
+    archive_dir: str = "archives"
+    als_enabled: bool = True  # Active Learning State
+
+
 class Config(BaseSettings):
     """Root configuration for nanobot."""
     agents: AgentsConfig = Field(default_factory=AgentsConfig)
@@ -230,6 +239,7 @@ class Config(BaseSettings):
     providers: ProvidersConfig = Field(default_factory=ProvidersConfig)
     gateway: GatewayConfig = Field(default_factory=GatewayConfig)
     tools: ToolsConfig = Field(default_factory=ToolsConfig)
+    memory: MemoryConfig = Field(default_factory=MemoryConfig)
     
     @property
     def workspace_path(self) -> Path:
