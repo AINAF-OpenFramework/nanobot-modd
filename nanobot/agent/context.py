@@ -25,7 +25,9 @@ class ContextBuilder:
         self.memory = MemoryStore(workspace)
         self.skills = SkillsLoader(workspace)
     
-    def build_system_prompt(self, skill_names: list[str] | None = None, user_query: str = "") -> str:
+    def build_system_prompt(
+        self, skill_names: list[str] | None = None, user_query: str = ""
+    ) -> str:
         """
         Build the system prompt using the 6-Block Context Workflow.
         
@@ -73,7 +75,7 @@ class ContextBuilder:
                 resource_parts.append(fractal_content)
         
         if resource_parts:
-            parts.append(f"# RESOURCES & MEMORY\n\n" + "\n\n".join(resource_parts))
+            parts.append("# RESOURCES & MEMORY\n\n" + "\n\n".join(resource_parts))
         
         # Block 3: Tools/Skills (Capabilities)
         # Always-loaded skills: include full content
@@ -97,8 +99,8 @@ Skills with available="false" need dependencies installed first - you can try in
     
     def _get_identity(self) -> str:
         """Get the core identity section."""
-        from datetime import datetime
         import time as _time
+        from datetime import datetime
         now = datetime.now().strftime("%Y-%m-%d %H:%M (%A)")
         tz = _time.strftime("%Z") or "UTC"
         workspace_path = str(self.workspace.expanduser().resolve())

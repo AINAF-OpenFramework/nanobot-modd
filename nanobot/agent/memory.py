@@ -4,8 +4,8 @@ import json
 import logging
 from pathlib import Path
 
+from nanobot.agent.memory_types import ActiveLearningState, FractalNode
 from nanobot.utils.helpers import ensure_dir
-from nanobot.agent.memory_types import FractalNode, ActiveLearningState
 
 logger = logging.getLogger(__name__)
 
