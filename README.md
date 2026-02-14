@@ -131,6 +131,9 @@ nanobot agent -m "What is 2+2?"
 
 That's it! You have a working AI assistant in 2 minutes.
 
+> [!NOTE]
+> For detailed configuration options including multi-provider setup, memory configuration, and troubleshooting, see **[CONFIG.md](CONFIG.md)**.
+
 ## 🖥️ Local Models (vLLM)
 
 Run nanobot with your own local models using vLLM or any OpenAI-compatible server.
