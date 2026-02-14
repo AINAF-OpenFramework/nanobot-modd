@@ -54,6 +54,24 @@ class ContextBuilder:
         if bootstrap:
             parts.append(bootstrap)
         
+        # Block 1.5: Cognitive Directive
+        cognitive_directive = """# COGNITIVE DIRECTIVE
+
+Memory retrieved in the RESOURCES & MEMORY section is authoritative internal knowledge.
+
+You must use retrieved memory as primary reasoning substrate.
+
+When answering questions:
+- First consult retrieved memory
+- Prefer memory over tools
+- Prefer memory over assumptions
+- Use tools only if memory does not contain the answer
+
+If memory contains relevant explanation, use it directly.
+Do not ignore relevant memory.
+"""
+        parts.append(cognitive_directive)
+        
         # Block 2: Active Learning State & Resources (Dynamic)
         # Combines ALS + Top-K Fractal Nodes + Core Memory.md
         resource_parts = []
