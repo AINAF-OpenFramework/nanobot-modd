@@ -51,6 +51,10 @@ def test_memory_config_accepts_valid_fields():
         "embedding_model": "text-embedding-3-small",
         "embedding_dim": 1536,
         "use_hybrid_search": True,
+        "latent_retry_attempts": 3,
+        "latent_retry_min_wait": 1.0,
+        "latent_retry_max_wait": 5.0,
+        "latent_retry_multiplier": 1.0,
     }
     
     # This should succeed
@@ -58,6 +62,7 @@ def test_memory_config_accepts_valid_fields():
     assert memory_config.enabled is True
     assert memory_config.provider == "local"
     assert memory_config.top_k == 5
+    assert memory_config.latent_retry_attempts == 3
 
 
 def test_example_config_validates():
@@ -158,7 +163,11 @@ def test_config_with_all_memory_fields():
             "mem0Version": "v2.0",
             "embeddingModel": "text-embedding-3-large",
             "embeddingDim": 3072,
-            "useHybridSearch": False
+            "useHybridSearch": False,
+            "latentRetryAttempts": 4,
+            "latentRetryMinWait": 0.5,
+            "latentRetryMaxWait": 10.0,
+            "latentRetryMultiplier": 2.0,
         }
     }
     
@@ -178,6 +187,10 @@ def test_config_with_all_memory_fields():
     assert config.memory.embedding_model == "text-embedding-3-large"
     assert config.memory.embedding_dim == 3072
     assert config.memory.use_hybrid_search is False
+    assert config.memory.latent_retry_attempts == 4
+    assert config.memory.latent_retry_min_wait == 0.5
+    assert config.memory.latent_retry_max_wait == 10.0
+    assert config.memory.latent_retry_multiplier == 2.0
 
 
 def test_multi_provider_config():

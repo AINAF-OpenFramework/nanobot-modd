@@ -119,7 +119,11 @@ Configure the Fractal Memory system and Active Learning State (ALS):
     "mem0Version": "v1.1",
     "embeddingModel": "text-embedding-3-small",
     "embeddingDim": 1536,
-    "useHybridSearch": true
+    "useHybridSearch": true,
+    "latentRetryAttempts": 3,
+    "latentRetryMinWait": 1.0,
+    "latentRetryMaxWait": 5.0,
+    "latentRetryMultiplier": 1.0
   }
 }
 ```
@@ -149,6 +153,12 @@ Configure these fields if using mem0 (https://mem0.ai):
 - `embeddingModel`: OpenAI embedding model (requires OpenAI API key)
 - `embeddingDim`: Embedding dimension (1536 for text-embedding-3-small)
 - `useHybridSearch`: Combine keyword and vector search
+
+**Latent Retry Settings:**
+- `latentRetryAttempts`: Number of retry attempts for latent LLM calls
+- `latentRetryMinWait`: Minimum backoff wait (seconds)
+- `latentRetryMaxWait`: Maximum backoff wait (seconds)
+- `latentRetryMultiplier`: Exponential backoff multiplier
 
 **Note on Sentence Transformers:**
 Sentence Transformers is a Python library for generating embeddings locally. To use it:

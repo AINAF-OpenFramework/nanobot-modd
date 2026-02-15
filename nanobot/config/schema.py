@@ -251,6 +251,10 @@ class MemoryConfig(BaseModel):
     latent_max_depth: int = 1
     beam_width: int = 3
     monte_carlo_samples: int = 0
+    latent_retry_attempts: int = 3
+    latent_retry_min_wait: float = 1.0
+    latent_retry_max_wait: float = 5.0
+    latent_retry_multiplier: float = 1.0
     importance_decay_rate: float = 0.01
 
 
