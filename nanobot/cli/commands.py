@@ -323,6 +323,10 @@ def _get_memory_config(config: "Config") -> dict:
         "latent_max_depth": config.memory.latent_max_depth,
         "beam_width": config.memory.beam_width,
         "monte_carlo_samples": config.memory.monte_carlo_samples,
+        "latent_retry_attempts": config.memory.latent_retry_attempts,
+        "latent_retry_min_wait": config.memory.latent_retry_min_wait,
+        "latent_retry_max_wait": config.memory.latent_retry_max_wait,
+        "latent_retry_multiplier": config.memory.latent_retry_multiplier,
         "importance_decay_rate": config.memory.importance_decay_rate,
     }
 

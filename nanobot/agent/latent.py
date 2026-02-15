@@ -8,7 +8,7 @@ from typing import Any
 
 from loguru import logger
 from pydantic import ValidationError
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
+from tenacity import AsyncRetrying, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from nanobot.agent.memory_types import Hypothesis, SuperpositionalState
 from nanobot.providers.base import LLMProvider
@@ -29,22 +29,34 @@ class LatentReasoner:
         self.timeout_seconds = timeout_seconds
         self.memory_config = memory_config or {}
 
-    @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=1, max=5),
-        retry=retry_if_exception_type((asyncio.TimeoutError, ConnectionError, OSError)),
-        reraise=True,
-    )
-    async def _call_llm_with_backoff(self, system_prompt: str, prompt: str) -> str:
-        response = await self.provider.chat(
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": prompt},
-            ],
-            model=self.model,
-            temperature=0.1,
+    async def _call_llm_with_backoff(
+        self, system_prompt: str, prompt: str, temperature: float = 0.1
+    ) -> str:
+        max_attempts = max(int(self.memory_config.get("latent_retry_attempts", 3)), 1)
+        retry_min_wait = max(float(self.memory_config.get("latent_retry_min_wait", 1.0)), 0.0)
+        retry_max_wait = max(float(self.memory_config.get("latent_retry_max_wait", 5.0)), 0.0)
+        retry_multiplier = max(float(self.memory_config.get("latent_retry_multiplier", 1.0)), 0.0)
+
+        retrying = AsyncRetrying(
+            stop=stop_after_attempt(max_attempts),
+            wait=wait_exponential(
+                multiplier=retry_multiplier, min=retry_min_wait, max=retry_max_wait
+            ),
+            retry=retry_if_exception_type((asyncio.TimeoutError, ConnectionError, OSError)),
+            reraise=True,
         )
-        return (response.content or "").strip()
+        async for attempt in retrying:
+            with attempt:
+                response = await self.provider.chat(
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": prompt},
+                    ],
+                    model=self.model,
+                    temperature=temperature,
+                )
+                return (response.content or "").strip()
+        return ""
 
     async def reason(self, user_message: str, context_summary: str) -> SuperpositionalState:
         fallback_state = SuperpositionalState(
@@ -70,29 +82,41 @@ class LatentReasoner:
         )
 
         try:
-            hypotheses = await asyncio.wait_for(
+            instincts = await asyncio.wait_for(
                 self._generate_initial_hypotheses(system_prompt, prompt),
                 timeout=self.timeout_seconds,
             )
-            if not hypotheses:
+            if not instincts:
                 return fallback_state
 
             max_depth = max(int(self.memory_config.get("latent_max_depth", 1)), 1)
             beam_width = max(int(self.memory_config.get("beam_width", 3)), 1)
             clarify_threshold = float(self.memory_config.get("clarify_entropy_threshold", 0.8))
+            hypotheses = sorted(instincts, key=self._score_hypothesis, reverse=True)[:beam_width]
             entropy = self._calculate_entropy(hypotheses)
             for current_depth in range(max_depth):
-                logger.info(f"Depth {current_depth}: Entropy={entropy:.3f}")
+                logger.info(
+                    "latent.depth={} latent.entropy={:.3f}", current_depth, entropy
+                )
                 if entropy < clarify_threshold:
                     break
                 if int(self.memory_config.get("monte_carlo_samples", 0)) > 0:
-                    hypotheses.extend(
-                        await self._monte_carlo_expand(hypotheses, user_message, context_summary)
+                    expanded = await self._monte_carlo_expand(
+                        hypotheses, user_message, context_summary
                     )
-                hypotheses = sorted(hypotheses, key=lambda h: h.confidence, reverse=True)[:beam_width]
+                    hypotheses.extend(expanded)
+                before_prune = len(hypotheses)
+                hypotheses = sorted(hypotheses, key=self._score_hypothesis, reverse=True)[
+                    :beam_width
+                ]
+                logger.info(
+                    "latent.beam.pruned={} latent.beam.width={}",
+                    max(before_prune - len(hypotheses), 0),
+                    beam_width,
+                )
                 entropy = self._calculate_entropy(hypotheses)
 
-            best_hypothesis = max(hypotheses, key=lambda h: h.confidence)
+            best_hypothesis = max(hypotheses, key=self._score_hypothesis)
             return SuperpositionalState(
                 hypotheses=hypotheses,
                 entropy=entropy,
@@ -110,6 +134,9 @@ class LatentReasoner:
         self, system_prompt: str, prompt: str
     ) -> list[Hypothesis]:
         payload = await self._call_llm_with_backoff(system_prompt, prompt)
+        return self._parse_hypotheses(payload)
+
+    def _parse_hypotheses(self, payload: str) -> list[Hypothesis]:
         if payload.startswith("```"):
             payload = payload.removeprefix("```json").removeprefix("```").strip()
             if payload.endswith("```"):
@@ -137,6 +164,9 @@ class LatentReasoner:
             )
         return hypotheses
 
+    def _score_hypothesis(self, hypothesis: Hypothesis) -> float:
+        return max(hypothesis.confidence, 0.0)
+
     def _calculate_entropy(self, hypotheses: list[Hypothesis]) -> float:
         total_confidence = sum(max(h.confidence, 0.0) for h in hypotheses) or 1.0
         probabilities = [max(h.confidence, 0.0) / total_confidence for h in hypotheses]
@@ -148,6 +178,31 @@ class LatentReasoner:
         user_message: str,
         context_summary: str,
     ) -> list[Hypothesis]:
-        # Placeholder for future stochastic expansion logic.
-        _ = (hypotheses, user_message, context_summary)
-        return []
+        samples = max(int(self.memory_config.get("monte_carlo_samples", 0)), 0)
+        if samples <= 0 or not hypotheses:
+            return []
+
+        seed_hypotheses = json.dumps(
+            [
+                {"intent": h.intent, "confidence": h.confidence, "reasoning": h.reasoning}
+                for h in hypotheses
+            ],
+            ensure_ascii=False,
+        )
+        system_prompt = (
+            "You are a latent reasoning sampler. Expand possible user intents from seed hypotheses. "
+            "Return only JSON as an object with a hypotheses array."
+        )
+        prompt = (
+            f"Context: {context_summary}\n"
+            f"User Input: {user_message}\n"
+            f"Seed Hypotheses: {seed_hypotheses}\n\n"
+            "Generate 1-2 additional plausible hypotheses with confidence and reasoning."
+        )
+
+        expanded: list[Hypothesis] = []
+        logger.info("latent.montecarlo.samples={}", samples)
+        for _ in range(samples):
+            payload = await self._call_llm_with_backoff(system_prompt, prompt, temperature=0.6)
+            expanded.extend(self._parse_hypotheses(payload))
+        return expanded

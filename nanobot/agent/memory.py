@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 MAX_CONTENT_PREVIEW_LENGTH = 200  # Maximum length for content preview in retrieval
 INITIAL_CANDIDATE_MULTIPLIER = 2
 ENTANGLEMENT_STRENGTH_THRESHOLD = 0.5
+MAX_ENTANGLEMENT_HOPS = 2
 
 
 class MemoryStore:
@@ -300,10 +301,13 @@ class MemoryStore:
             for node, score in initial_results
         }
         visited: set[str] = set(candidates.keys())
-        queue = deque(node for node, _ in initial_results)
+        max_hops = max(int(self.config.get("max_entanglement_hops", MAX_ENTANGLEMENT_HOPS)), 0)
+        queue = deque((node, 0) for node, _ in initial_results)
 
         while queue:
-            node = queue.popleft()
+            node, hops = queue.popleft()
+            if hops >= max_hops:
+                continue
             base_score = candidates.get(node.id, {}).get("vec_score", 0.0)
             for ent_id, strength in node.entangled_ids.items():
                 if ent_id in visited:
@@ -319,7 +323,7 @@ class MemoryStore:
                         "vec_score": base_score * strength,
                         "raw_entanglement": 0.0,
                     }
-                    queue.append(ent_node)
+                    queue.append((ent_node, hops + 1))
 
         max_entanglement = 0.0
         for candidate_id, data in candidates.items():

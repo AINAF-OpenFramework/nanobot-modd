@@ -1,14 +1,20 @@
 """Tests for context builder."""
 
+from datetime import datetime, timedelta
 import tempfile
 from unittest.mock import AsyncMock
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from nanobot.agent.context import ContextBuilder
 from nanobot.agent.latent import LatentReasoner
 from nanobot.agent.memory import MemoryStore
 from nanobot.agent.memory_types import FractalNode, SuperpositionalState
+from nanobot.bus.queue import MessageBus
+from nanobot.channels.base import BaseChannel
+from nanobot.config.schema import Config
+from nanobot.gateway import build_health_payload
 from nanobot.providers.base import LLMResponse
 
 
@@ -164,3 +170,154 @@ async def test_latent_reasoning_retries_transient_errors():
 
     assert state.hypotheses
     assert mock_provider.chat.call_count == 3
+
+
+@pytest.mark.asyncio
+async def test_latent_reasoning_iterative_beam_pruning():
+    provider = AsyncMock()
+    provider.chat.return_value = LLMResponse(
+        content='{"hypotheses":[{"intent":"a","confidence":0.5,"reasoning":"a"},{"intent":"b","confidence":0.5,"reasoning":"b"}]}'
+    )
+
+    reasoner = LatentReasoner(
+        provider=provider,
+        model="test-model",
+        memory_config={
+            "clarify_entropy_threshold": 0.9,
+            "latent_max_depth": 1,
+            "beam_width": 2,
+            "monte_carlo_samples": 1,
+        },
+    )
+    reasoner._monte_carlo_expand = AsyncMock(
+        return_value=[
+            reasoner._parse_hypotheses(
+                '{"hypotheses":[{"intent":"c","confidence":0.9,"reasoning":"c"}]}'
+            )[0]
+        ]
+    )
+
+    state = await reasoner.reason("ambiguous", context_summary="ctx")
+    assert len(state.hypotheses) == 2
+    assert any(h.intent == "c" for h in state.hypotheses)
+    reasoner._monte_carlo_expand.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_monte_carlo_expand_uses_sampling_count():
+    provider = AsyncMock()
+    provider.chat.side_effect = [
+        LLMResponse(content='{"hypotheses":[{"intent":"h1","confidence":0.6,"reasoning":"r1"}]}'),
+        LLMResponse(content='{"hypotheses":[{"intent":"h2","confidence":0.7,"reasoning":"r2"}]}'),
+    ]
+    reasoner = LatentReasoner(
+        provider=provider,
+        model="test-model",
+        memory_config={"monte_carlo_samples": 2},
+    )
+
+    base_hypotheses = reasoner._parse_hypotheses(
+        '{"hypotheses":[{"intent":"seed","confidence":0.5,"reasoning":"seed"}]}'
+    )
+    expanded = await reasoner._monte_carlo_expand(base_hypotheses, "q", "ctx")
+
+    assert [h.intent for h in expanded] == ["h1", "h2"]
+    assert provider.chat.await_count == 2
+
+
+@pytest.mark.asyncio
+async def test_latent_retry_attempts_are_configurable():
+    provider = AsyncMock()
+    provider.chat.side_effect = ConnectionError("always fails")
+    reasoner = LatentReasoner(
+        provider=provider,
+        model="test-model",
+        memory_config={"latent_retry_attempts": 2},
+    )
+
+    state = await reasoner.reason("retry", context_summary="")
+    assert state.hypotheses == []
+    assert provider.chat.await_count == 2
+
+
+def test_entanglement_hop_limit_prevents_deep_chain():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        memory = MemoryStore(Path(tmpdir), config={"max_entanglement_hops": 1})
+        node_a = memory.save_fractal_node(content="A", tags=["alpha"], summary="alpha")
+        node_b = memory.save_fractal_node(content="B", tags=["beta"], summary="beta")
+        node_c = memory.save_fractal_node(content="C", tags=["gamma"], summary="gamma")
+
+        node_a.entangled_ids[node_b.id] = 1.0
+        node_b.entangled_ids[node_c.id] = 1.0
+        node_c.entangled_ids[node_a.id] = 1.0
+        memory._update_node(node_a)
+        memory._update_node(node_b)
+        memory._update_node(node_c)
+
+        context = memory.get_entangled_context(query="alpha", top_k=5)
+        ids = {node.id for node in context}
+        assert node_a.id in ids
+        assert node_b.id in ids
+        assert node_c.id not in ids
+
+
+def test_importance_decay_penalizes_old_nodes():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        memory = MemoryStore(
+            Path(tmpdir),
+            config={
+                "semantic_weight": 0.0,
+                "entanglement_weight": 0.0,
+                "importance_weight": 1.0,
+                "importance_decay_rate": 0.05,
+            },
+        )
+        old_node = memory.save_fractal_node(content="old", tags=["alpha"], summary="alpha")
+        new_node = memory.save_fractal_node(content="new", tags=["alpha"], summary="alpha")
+
+        old_node.importance = 1.0
+        new_node.importance = 0.5
+        old_node.timestamp = datetime.now() - timedelta(hours=100)
+        memory._update_node(old_node)
+        memory._update_node(new_node)
+
+        context = memory.get_entangled_context(query="alpha", top_k=2)
+        assert [node.id for node in context] == [new_node.id, old_node.id]
+
+
+class DummyChannel(BaseChannel):
+    name = "dummy"
+
+    async def start(self) -> None:
+        return None
+
+    async def stop(self) -> None:
+        return None
+
+    async def send(self, msg) -> None:
+        return None
+
+
+@pytest.mark.asyncio
+async def test_base_channel_blocks_sender_not_in_allow_from():
+    bus = MessageBus()
+    config = SimpleNamespace(allow_from=["allowed-user"])
+    channel = DummyChannel(config=config, bus=bus)
+
+    await channel._handle_message(sender_id="blocked-user", chat_id="chat1", content="hello")
+    assert bus.inbound_size == 0
+
+
+def test_health_payload_schema(monkeypatch):
+    monkeypatch.setattr("nanobot.gateway.load_config", lambda: Config())
+    monkeypatch.setattr("nanobot.gateway._version", lambda: "vtest")
+
+    payload = build_health_payload()
+
+    assert payload["status"] == "ok"
+    assert payload["version"] == "vtest"
+    assert set(payload.keys()) == {"status", "version", "memory", "latent_reasoning"}
+    assert "enabled" in payload["memory"]
+    assert "entanglement_weight" in payload["memory"]
+    assert "enabled" in payload["latent_reasoning"]
+    assert "depth" in payload["latent_reasoning"]

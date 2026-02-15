@@ -12,6 +12,7 @@
 ## 3. Cycle Handling
 - Retrieval expands through entanglement links using a visited set.
 - Nodes already seen are skipped to prevent loops and duplicates.
+- Expansion uses a bounded BFS (`MAX_ENTANGLEMENT_HOPS`) to prevent deep-chain blowups.
 
 ## 4. FractalNode shape
 - `id`, `content`, `tags`, `embedding`
