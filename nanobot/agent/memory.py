@@ -45,6 +45,10 @@ class MemoryStore:
         self.memory_file = self.memory_dir / "MEMORY.md"
         self.history_file = self.memory_dir / "HISTORY.md"
         
+        # Triune Memory: YAML paths for token-efficient storage
+        self.memory_yaml = self.memory_dir / "MEMORY.yaml"
+        self.history_yaml = self.memory_dir / "HISTORY.yaml"
+        
         # --- NEW: Fractal Architecture ---
         self.archives_dir = ensure_dir(self.memory_dir / "archives")
         self.index_file = self.memory_dir / "fractal_index.json"
@@ -85,9 +89,71 @@ class MemoryStore:
             self.als_file.write_text(default_als)
 
     def read_long_term(self) -> str:
+        """
+        Read long-term memory content.
+        
+        Triune Memory: Prefers .yaml for token efficiency,
+        falls back to .md for backward compatibility.
+        """
+        # Prefer YAML (token-efficient)
+        if self.memory_yaml.exists():
+            try:
+                import yaml
+                data = yaml.safe_load(self.memory_yaml.read_text(encoding="utf-8"))
+                return self._memory_yaml_to_str(data)
+            except Exception as e:
+                logger.warning(f"Failed to load MEMORY.yaml: {e}")
+        
+        # Fall back to MD (backward compatibility)
         if self.memory_file.exists():
             return self.memory_file.read_text(encoding="utf-8")
         return ""
+    
+    def _memory_yaml_to_str(self, data: dict[str, Any]) -> str:
+        """Convert YAML memory data to string format."""
+        if not isinstance(data, dict):
+            return str(data)
+        
+        parts: list[str] = []
+        
+        # Handle title
+        if "title" in data:
+            parts.append(f"# {data['title']}")
+        
+        # Handle sections
+        for section in data.get("sections", []):
+            parts.append(self._format_memory_section(section))
+        
+        return "\n\n".join(parts) if parts else str(data)
+    
+    def _format_memory_section(self, section: dict[str, Any], level: int = 1) -> str:
+        """Format a memory section for display."""
+        parts: list[str] = []
+        
+        title = section.get("title", "")
+        if title:
+            header = "#" * (level + 1)
+            parts.append(f"{header} {title}")
+        
+        content = section.get("content", "")
+        if content:
+            parts.append(content)
+        
+        # Include lists
+        for lst in section.get("lists", []):
+            items = lst.get("items", [])
+            for item in items:
+                if isinstance(item, dict):
+                    checked = "x" if item.get("checked") else " "
+                    parts.append(f"- [{checked}] {item.get('text', '')}")
+                else:
+                    parts.append(f"- {item}")
+        
+        # Handle subsections
+        for sub in section.get("subsections", []):
+            parts.append(self._format_memory_section(sub, level + 1))
+        
+        return "\n".join(parts)
 
     def write_long_term(self, content: str) -> None:
         self.memory_file.write_text(content, encoding="utf-8")

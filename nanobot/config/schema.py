@@ -264,6 +264,17 @@ class MemoryConfig(BaseModel):
     importance_decay_rate: float = 0.01
 
 
+class TranslatorConfig(BaseModel):
+    """Triune Memory Translator configuration."""
+    enabled: bool = True
+    auto_sync_on_startup: bool = True
+    watch_for_changes: bool = False
+    sync_direction: str = "md_to_yaml"  # md_to_yaml, yaml_to_md, bidirectional
+    excluded_files: list[str] = Field(
+        default_factory=lambda: ["README.md", "CHANGELOG.md", "IMPLEMENTATION_SUMMARY.md"]
+    )
+
+
 class Config(BaseSettings):
     """Root configuration for nanobot."""
     agents: AgentsConfig = Field(default_factory=AgentsConfig)
@@ -272,6 +283,7 @@ class Config(BaseSettings):
     gateway: GatewayConfig = Field(default_factory=GatewayConfig)
     tools: ToolsConfig = Field(default_factory=ToolsConfig)
     memory: MemoryConfig = Field(default_factory=MemoryConfig)
+    translator: TranslatorConfig = Field(default_factory=TranslatorConfig)
     telemetry: TelemetryConfig = Field(default_factory=TelemetryConfig)
     enable_quantum_latent: bool = True
     rate_limit_enabled: bool = True

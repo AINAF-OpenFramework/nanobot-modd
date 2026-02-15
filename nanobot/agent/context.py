@@ -1,6 +1,7 @@
 """Context builder for assembling agent prompts."""
 
 import base64
+import logging
 import mimetypes
 import platform
 from pathlib import Path
@@ -10,6 +11,11 @@ from nanobot.agent.memory import MemoryStore
 from nanobot.agent.memory_types import SuperpositionalState
 from nanobot.agent.skills import SkillsLoader
 
+logger = logging.getLogger(__name__)
+
+# Bootstrap file base names (without extension)
+BOOTSTRAP_NAMES = ["AGENTS", "SOUL", "USER", "TOOLS", "IDENTITY"]
+
 
 class ContextBuilder:
     """
@@ -17,8 +23,12 @@ class ContextBuilder:
     
     Assembles bootstrap files, memory, skills, and conversation history
     into a coherent prompt for the LLM.
+    
+    Supports Triune Memory: prefers .yaml files for token efficiency,
+    falls back to .md files for backward compatibility.
     """
     
+    # Legacy constant for backward compatibility
     BOOTSTRAP_FILES = ["AGENTS.md", "SOUL.md", "USER.md", "TOOLS.md", "IDENTITY.md"]
     
     def __init__(self, workspace: Path, memory_config: dict[str, Any] | None = None):
@@ -173,16 +183,98 @@ When remembering something important, write to {workspace_path}/memory/MEMORY.md
 To recall past events, grep {workspace_path}/memory/HISTORY.md"""
     
     def _load_bootstrap_files(self) -> str:
-        """Load all bootstrap files from workspace."""
+        """
+        Load all bootstrap files from workspace.
+        
+        Triune Memory: Prefers .yaml files for token efficiency,
+        falls back to .md files for backward compatibility.
+        """
         parts = []
         
-        for filename in self.BOOTSTRAP_FILES:
-            file_path = self.workspace / filename
-            if file_path.exists():
-                content = file_path.read_text(encoding="utf-8")
-                parts.append(f"## {filename}\n\n{content}")
+        for base_name in BOOTSTRAP_NAMES:
+            yaml_path = self.workspace / f"{base_name}.yaml"
+            md_path = self.workspace / f"{base_name}.md"
+            
+            # Prefer YAML if available (token-efficient)
+            if yaml_path.exists():
+                try:
+                    import yaml
+                    data = yaml.safe_load(yaml_path.read_text(encoding="utf-8"))
+                    content = self._yaml_to_context(data)
+                    parts.append(f"## {base_name}\n\n{content}")
+                    continue
+                except Exception as e:
+                    logger.warning(f"Failed to load {yaml_path}: {e}")
+            
+            # Fall back to MD (backward compatibility)
+            if md_path.exists():
+                content = md_path.read_text(encoding="utf-8")
+                parts.append(f"## {base_name}.md\n\n{content}")
         
         return "\n\n".join(parts) if parts else ""
+    
+    def _yaml_to_context(self, data: dict[str, Any]) -> str:
+        """
+        Convert YAML data to context string for LLM.
+        
+        Args:
+            data: YAML data dictionary
+            
+        Returns:
+            Formatted context string
+        """
+        if not isinstance(data, dict):
+            return str(data)
+        
+        parts: list[str] = []
+        
+        # Handle title
+        if "title" in data:
+            parts.append(f"# {data['title']}")
+        
+        # Handle sections
+        for section in data.get("sections", []):
+            parts.append(self._format_section_for_context(section))
+        
+        return "\n\n".join(parts)
+    
+    def _format_section_for_context(self, section: dict[str, Any], level: int = 1) -> str:
+        """Format a section for context display."""
+        parts: list[str] = []
+        
+        title = section.get("title", "")
+        if title:
+            header = "#" * (level + 1)
+            parts.append(f"{header} {title}")
+        
+        content = section.get("content", "")
+        if content:
+            parts.append(content)
+        
+        # Include code blocks
+        for cb in section.get("code_blocks", []):
+            lang = cb.get("language", "")
+            code = cb.get("content", "")
+            parts.append(f"```{lang}\n{code}\n```")
+        
+        # Include lists
+        for lst in section.get("lists", []):
+            list_type = lst.get("type", "bullet")
+            items = lst.get("items", [])
+            for i, item in enumerate(items):
+                if list_type == "checkbox" and isinstance(item, dict):
+                    checked = "x" if item.get("checked") else " "
+                    parts.append(f"- [{checked}] {item.get('text', '')}")
+                elif list_type == "numbered":
+                    parts.append(f"{i + 1}. {item}")
+                else:
+                    parts.append(f"- {item}")
+        
+        # Handle subsections
+        for sub in section.get("subsections", []):
+            parts.append(self._format_section_for_context(sub, level + 1))
+        
+        return "\n".join(parts)
     
     def build_messages(
         self,
