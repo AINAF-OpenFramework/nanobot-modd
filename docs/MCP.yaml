@@ -1,0 +1,351 @@
+_meta:
+  source: MCP.md
+  format_version: '1.0'
+title: MCP (Model Context Protocol) Integration
+sections:
+- title: MCP (Model Context Protocol) Integration
+  subsections:
+  - title: Overview
+    content: Nanobot now supports the Model Context Protocol (MCP), enabling seamless
+      integration with external tools and services. MCP allows Nanobot to dynamically
+      discover, connect to, and use tools from any MCP-compatible server.
+  - title: What is MCP?
+    content: 'The Model Context Protocol is an open protocol that standardizes how
+      AI applications communicate with external tools and data sources. It enables:
+
+
+      - **Dynamic Tool Discovery**: Automatically discover available tools from MCP
+      servers
+
+      - **Standardized Communication**: Consistent protocol for tool invocation
+
+      - **Extensibility**: Easy integration with new tools without code changes
+
+      - **Type Safety**: JSON Schema-based tool parameter validation'
+    lists:
+    - type: bullet
+      items:
+      - '**Dynamic Tool Discovery**: Automatically discover available tools from MCP
+        servers'
+      - '**Standardized Communication**: Consistent protocol for tool invocation'
+      - '**Extensibility**: Easy integration with new tools without code changes'
+      - '**Type Safety**: JSON Schema-based tool parameter validation'
+  - title: Architecture
+    content: 'MCP integrates seamlessly with Nanobot''s existing architecture:'
+    code_blocks:
+    - language: ''
+      content: Soul (.md intent) → Translator (.py) → YAML → AgentLoop → ToolRegistry
+        → MCP Client → External MCP Servers
+    subsections:
+    - title: Components
+      content: '1. **MCPClient**: Manages connections to individual MCP servers
+
+        2. **MCPRegistry**: Coordinates multiple MCP clients and tool registration
+
+        3. **MCPToolAdapter**: Wraps MCP tools as native Nanobot tools
+
+        4. **MCPConfigLoader**: Loads server configurations from YAML
+
+        5. **MCPServer**: Exposes Nanobot''s tools via MCP (optional)'
+      lists:
+      - type: numbered
+        items:
+        - '**MCPClient**: Manages connections to individual MCP servers'
+        - '**MCPRegistry**: Coordinates multiple MCP clients and tool registration'
+        - '**MCPToolAdapter**: Wraps MCP tools as native Nanobot tools'
+        - '**MCPConfigLoader**: Loads server configurations from YAML'
+        - '**MCPServer**: Exposes Nanobot''s tools via MCP (optional)'
+  - title: Configuration
+    content: 'MCP servers are configured in `nanobot/config/mcp.yaml`:'
+    code_blocks:
+    - language: yaml
+      content: "mcp_servers:\n  # Example: Filesystem server\n  - name: filesystem\n\
+        \    type: local\n    command: npx\n    args:\n      - \"@modelcontextprotocol/server-filesystem\"\
+        \n      - \"/workspace\"\n  \n  # Example: Custom Python server\n  - name:\
+        \ my_tools\n    type: local\n    command: python\n    args:\n      - \"-m\"\
+        \n      - \"my_mcp_server\"\n    env:\n      API_KEY: \"your-api-key-here\""
+    subsections:
+    - title: Configuration Fields
+      content: '- **name** (required): Unique identifier for the server
+
+        - **type** (optional): Connection type - "local" or "stdio" (default: "local")
+
+        - **command** (required): Command to start the MCP server
+
+        - **args** (optional): List of command-line arguments
+
+        - **env** (optional): Environment variables for the server process'
+      lists:
+      - type: bullet
+        items:
+        - '**name** (required): Unique identifier for the server'
+        - '**type** (optional): Connection type - "local" or "stdio" (default: "local")'
+        - '**command** (required): Command to start the MCP server'
+        - '**args** (optional): List of command-line arguments'
+        - '**env** (optional): Environment variables for the server process'
+  - title: Usage
+    subsections:
+    - title: Automatic Initialization
+      content: 'MCP integration is automatically initialized when:
+
+        1. The `nanobot/config/mcp.yaml` file exists in your workspace
+
+        2. AgentLoop starts up
+
+
+        No code changes are required - just configure your MCP servers and they''re
+        ready to use!'
+    - title: Tool Naming
+      content: 'MCP tools are automatically prefixed to avoid naming conflicts:
+
+        - Format: `mcp_<server_name>_<tool_name>`
+
+        - Example: `mcp_filesystem_read_file`'
+    - title: 'Example: Using a Chess Engine'
+      content: '1. Create `nanobot/config/mcp.yaml`:
+
+
+
+        2. Start Nanobot - the chess engine tools are automatically available
+
+
+        3. Ask: "What''s the best move in this position: rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR"
+
+
+        4. Nanobot uses the `mcp_stockfish_analyze_position` tool automatically'
+      code_blocks:
+      - language: yaml
+        content: "mcp_servers:\n  - name: stockfish\n    type: local\n    command:\
+          \ python\n    args:\n      - \"-m\"\n      - \"stockfish_mcp_server\""
+      lists:
+      - type: numbered
+        items:
+        - 'Create `nanobot/config/mcp.yaml`:'
+      - type: numbered
+        items:
+        - Start Nanobot - the chess engine tools are automatically available
+      - type: numbered
+        items:
+        - 'Ask: "What''s the best move in this position: rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR"'
+      - type: numbered
+        items:
+        - Nanobot uses the `mcp_stockfish_analyze_position` tool automatically
+  - title: Creating MCP Servers
+    content: You can create your own MCP servers to expose custom tools to Nanobot.
+    subsections:
+    - title: Minimal Python MCP Server Example
+      code_blocks:
+      - language: python
+        content: "import asyncio\nimport json\nimport sys\n\nasync def handle_request(request):\n\
+          \    method = request.get(\"method\")\n    \n    if method == \"initialize\"\
+          :\n        return {\n            \"protocolVersion\": \"2024-11-05\",\n\
+          \            \"capabilities\": {\"tools\": {}},\n            \"serverInfo\"\
+          : {\"name\": \"my-server\", \"version\": \"1.0.0\"},\n        }\n    \n\
+          \    elif method == \"tools/list\":\n        return {\n            \"tools\"\
+          : [\n                {\n                    \"name\": \"my_tool\",\n   \
+          \                 \"description\": \"My custom tool\",\n               \
+          \     \"inputSchema\": {\n                        \"type\": \"object\",\n\
+          \                        \"properties\": {\n                           \
+          \ \"input\": {\"type\": \"string\"}\n                        },\n      \
+          \                  \"required\": [\"input\"]\n                    }\n  \
+          \              }\n            ]\n        }\n    \n    elif method == \"\
+          tools/call\":\n        tool_name = request[\"params\"][\"name\"]\n     \
+          \   args = request[\"params\"][\"arguments\"]\n        \n        # Implement\
+          \ your tool logic here\n        result = f\"Processed: {args.get('input',\
+          \ '')}\"\n        \n        return {\n            \"content\": [{\"type\"\
+          : \"text\", \"text\": result}]\n        }\n\nasync def main():\n    while\
+          \ True:\n        line = await asyncio.get_event_loop().run_in_executor(\n\
+          \            None, sys.stdin.readline\n        )\n        if not line:\n\
+          \            break\n        \n        request = json.loads(line)\n     \
+          \   msg_id = request.get(\"id\")\n        \n        result = await handle_request(request)\n\
+          \        \n        if msg_id is not None:\n            response = {\n  \
+          \              \"jsonrpc\": \"2.0\",\n                \"id\": msg_id,\n\
+          \                \"result\": result\n            }\n            print(json.dumps(response),\
+          \ flush=True)\n\nif __name__ == \"__main__\":\n    asyncio.run(main())"
+  - title: Exposing Nanobot Tools via MCP
+    content: 'You can expose Nanobot''s tools to external MCP clients using `MCPServer`:
+
+
+      ```python
+
+      from nanobot.mcp import MCPServer
+
+      from nanobot.agent.tools.registry import ToolRegistry'
+- title: Create registry with your tools
+  content: registry = ToolRegistry()
+- title: '... register tools ...'
+- title: Start MCP server
+  content: 'server = MCPServer(registry)
+
+    await server.start()  # Runs in stdio mode
+
+    ```
+
+
+    This allows other applications to use Nanobot''s capabilities as MCP tools.'
+  subsections:
+  - title: Error Handling
+    content: 'MCP integration is designed to be resilient:
+
+
+      - **Connection Failures**: Logged as warnings, won''t crash AgentLoop
+
+      - **Tool Discovery Errors**: Invalid tools are skipped with warnings
+
+      - **Execution Errors**: Returned as descriptive error strings
+
+      - **Disconnections**: Handled gracefully on shutdown'
+    lists:
+    - type: bullet
+      items:
+      - '**Connection Failures**: Logged as warnings, won''t crash AgentLoop'
+      - '**Tool Discovery Errors**: Invalid tools are skipped with warnings'
+      - '**Execution Errors**: Returned as descriptive error strings'
+      - '**Disconnections**: Handled gracefully on shutdown'
+  - title: Lifecycle Management
+    content: 'MCP clients are automatically managed:
+
+
+      1. **Startup**: Clients connect when `AgentLoop.run()` is called
+
+      2. **Runtime**: Tools are available throughout the agent''s lifetime
+
+      3. **Shutdown**: Clients disconnect when the agent loop exits'
+    lists:
+    - type: numbered
+      items:
+      - '**Startup**: Clients connect when `AgentLoop.run()` is called'
+      - '**Runtime**: Tools are available throughout the agent''s lifetime'
+      - '**Shutdown**: Clients disconnect when the agent loop exits'
+  - title: Advanced Features
+    subsections:
+    - title: Dynamic Refresh
+      content: 'Refresh tools from all connected servers:'
+      code_blocks:
+      - language: python
+        content: "if agent_loop.mcp_registry:\n    await agent_loop.mcp_registry.refresh()"
+    - title: Manual Client Management
+      content: '```python
+
+        from nanobot.mcp import MCPRegistry, MCPServerConfig
+
+
+        registry = MCPRegistry(tool_registry)'
+- title: Add client
+  content: "config = MCPServerConfig(\n    name=\"my_server\",\n    type=\"local\"\
+    ,\n    command=\"python\",\n    args=[\"-m\", \"my_server\"]\n)\nawait registry.add_client(config)"
+- title: Remove tools
+  content: registry.unregister_tools("my_server")
+- title: Disconnect
+  content: 'await registry.disconnect_all()
+
+    ```'
+  subsections:
+  - title: Troubleshooting
+    subsections:
+    - title: MCP Server Not Connecting
+      content: '1. Check that the command in `mcp.yaml` is valid
+
+        2. Verify the server binary/script exists
+
+        3. Check logs for connection errors
+
+        4. Test the MCP server standalone'
+      lists:
+      - type: numbered
+        items:
+        - Check that the command in `mcp.yaml` is valid
+        - Verify the server binary/script exists
+        - Check logs for connection errors
+        - Test the MCP server standalone
+    - title: Tools Not Appearing
+      content: '1. Verify MCP server implements `tools/list` method
+
+        2. Check that tool schemas are valid JSON Schema
+
+        3. Look for warnings in logs about invalid tools
+
+        4. Ensure `mcp.yaml` is in the correct location'
+      lists:
+      - type: numbered
+        items:
+        - Verify MCP server implements `tools/list` method
+        - Check that tool schemas are valid JSON Schema
+        - Look for warnings in logs about invalid tools
+        - Ensure `mcp.yaml` is in the correct location
+    - title: Tool Execution Errors
+      content: '1. Check parameter types match tool schema
+
+        2. Verify MCP server is still running
+
+        3. Review server logs for execution errors
+
+        4. Test tool execution directly with the MCP server'
+      lists:
+      - type: numbered
+        items:
+        - Check parameter types match tool schema
+        - Verify MCP server is still running
+        - Review server logs for execution errors
+        - Test tool execution directly with the MCP server
+  - title: Best Practices
+    content: '1. **Validate Configuration**: Test MCP servers independently before
+      integrating
+
+      2. **Use Descriptive Names**: Choose clear, unique names for servers and tools
+
+      3. **Handle Errors Gracefully**: MCP servers should return descriptive error
+      messages
+
+      4. **Monitor Logs**: Check logs regularly for connection issues
+
+      5. **Version Management**: Keep MCP protocol version consistent across servers'
+    lists:
+    - type: numbered
+      items:
+      - '**Validate Configuration**: Test MCP servers independently before integrating'
+      - '**Use Descriptive Names**: Choose clear, unique names for servers and tools'
+      - '**Handle Errors Gracefully**: MCP servers should return descriptive error
+        messages'
+      - '**Monitor Logs**: Check logs regularly for connection issues'
+      - '**Version Management**: Keep MCP protocol version consistent across servers'
+  - title: Security Considerations
+    content: '1. **Command Validation**: Be cautious with commands in `mcp.yaml`
+
+      2. **Environment Variables**: Don''t commit sensitive data in config files
+
+      3. **Tool Permissions**: Understand what capabilities each MCP tool has
+
+      4. **Network Access**: MCP servers may access networks/filesystems
+
+      5. **Process Isolation**: Each MCP server runs as a separate process'
+    lists:
+    - type: numbered
+      items:
+      - '**Command Validation**: Be cautious with commands in `mcp.yaml`'
+      - '**Environment Variables**: Don''t commit sensitive data in config files'
+      - '**Tool Permissions**: Understand what capabilities each MCP tool has'
+      - '**Network Access**: MCP servers may access networks/filesystems'
+      - '**Process Isolation**: Each MCP server runs as a separate process'
+  - title: References
+    content: '- [MCP Specification](https://modelcontextprotocol.io/)
+
+      - [MCP SDK](https://github.com/modelcontextprotocol)
+
+      - [Example MCP Servers](https://github.com/modelcontextprotocol/servers)'
+    lists:
+    - type: bullet
+      items:
+      - '[MCP Specification](https://modelcontextprotocol.io/)'
+      - '[MCP SDK](https://github.com/modelcontextprotocol)'
+      - '[Example MCP Servers](https://github.com/modelcontextprotocol/servers)'
+  - title: Support
+    content: 'For issues with MCP integration:
+
+      1. Check the troubleshooting section above
+
+      2. Review logs for error messages
+
+      3. Test MCP servers independently
+
+      4. Create an issue with server configuration and logs'

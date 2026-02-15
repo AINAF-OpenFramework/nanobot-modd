@@ -1,0 +1,51 @@
+_meta:
+  source: ENTANGLED_MEMORY.md
+  format_version: '1.0'
+title: Entangled Memory
+sections:
+- title: Entangled Memory
+  subsections:
+  - title: 1. Concept
+    content: '- Memory retrieval combines semantic matching with graph entanglement
+      links between nodes.'
+    lists:
+    - type: bullet
+      items:
+      - Memory retrieval combines semantic matching with graph entanglement links
+        between nodes.
+  - title: 2. Hybrid Scoring
+    content: "- Final score uses weighted components:\n  - semantic relevance\n  -\
+      \ entanglement strength\n  - (optional) decayed importance"
+    lists:
+    - type: bullet
+      items:
+      - 'Final score uses weighted components:'
+      - semantic relevance
+      - entanglement strength
+      - (optional) decayed importance
+  - title: 3. Cycle Handling
+    content: '- Retrieval expands through entanglement links using a visited set.
+
+      - Nodes already seen are skipped to prevent loops and duplicates.
+
+      - Expansion uses a bounded BFS (`MAX_ENTANGLEMENT_HOPS`) to prevent deep-chain
+      blowups.'
+    lists:
+    - type: bullet
+      items:
+      - Retrieval expands through entanglement links using a visited set.
+      - Nodes already seen are skipped to prevent loops and duplicates.
+      - Expansion uses a bounded BFS (`MAX_ENTANGLEMENT_HOPS`) to prevent deep-chain
+        blowups.
+  - title: 4. FractalNode shape
+    content: '- `id`, `content`, `tags`, `embedding`
+
+      - `entangled_ids: {node_id: strength}`
+
+      - `importance` for optional long-term weighting'
+    lists:
+    - type: bullet
+      items:
+      - '`id`, `content`, `tags`, `embedding`'
+      - '`entangled_ids: {node_id: strength}`'
+      - '`importance` for optional long-term weighting'

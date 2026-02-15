@@ -1,0 +1,426 @@
+_meta:
+  source: GAME_LEARNING.md
+  format_version: '1.0'
+title: Game Learning Layer
+sections:
+- title: Game Learning Layer
+  content: The Game Learning Layer provides a comprehensive framework for building
+    AI agents that can learn to play games through visual perception, multimodal fusion,
+    and strategy memory.
+  subsections:
+  - title: 'Overview: 6-Step Learning Loop'
+    content: 'The learning process follows a continuous loop:
+
+
+      1. **Perceive** - Capture game state and screenshot
+
+      2. **Encode** - Transform visual input into embeddings
+
+      3. **Fuse** - Combine state, visual, and memory representations
+
+      4. **Reason** - Select best action using LLM reasoning
+
+      5. **Execute** - Perform action in game environment
+
+      6. **Reflect** - Store strategy and update learning state'
+    code_blocks:
+    - language: ''
+      content: '┌────────────────────────────────────────────────────────────────────┐
+
+        │                    GAME LEARNING LOOP                              │
+
+        ├────────────────────────────────────────────────────────────────────┤
+
+        │                                                                    │
+
+        │  ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐        │
+
+        │  │ PERCEIVE │──▶│  ENCODE  │──▶│   FUSE   │──▶│  REASON  │        │
+
+        │  │          │   │ (Visual) │   │(Multimod)│   │  (LLM)   │        │
+
+        │  └──────────┘   └──────────┘   └──────────┘   └────┬─────┘        │
+
+        │       ▲                                            │               │
+
+        │       │                                            ▼               │
+
+        │  ┌────┴─────┐                               ┌──────────┐          │
+
+        │  │ REFLECT  │◀──────────────────────────────│ EXECUTE  │          │
+
+        │  │(Strategy)│                               │ (Action) │          │
+
+        │  └──────────┘                               └──────────┘          │
+
+        │                                                                    │
+
+        └────────────────────────────────────────────────────────────────────┘'
+    lists:
+    - type: numbered
+      items:
+      - '**Perceive** - Capture game state and screenshot'
+      - '**Encode** - Transform visual input into embeddings'
+      - '**Fuse** - Combine state, visual, and memory representations'
+      - '**Reason** - Select best action using LLM reasoning'
+      - '**Execute** - Perform action in game environment'
+      - '**Reflect** - Store strategy and update learning state'
+  - title: Architecture
+    code_blocks:
+    - language: ''
+      content: '┌─────────────────────────────────────────────────────────────────────┐
+
+        │                   GameLearningController                            │
+
+        ├─────────────────────────────────────────────────────────────────────┤
+
+        │                                                                     │
+
+        │  ┌──────────────────────┐    ┌──────────────────────┐              │
+
+        │  │  GameEnvironment     │    │   VisualEncoder      │              │
+
+        │  │  Adapter             │    │   (MobileNet/Grid)   │              │
+
+        │  │  - APIGameAdapter    │    └──────────────────────┘              │
+
+        │  │  - GUIGameAdapter    │              │                           │
+
+        │  └──────────────────────┘              ▼                           │
+
+        │            │                 ┌──────────────────────┐              │
+
+        │            ▼                 │  MultimodalFusion    │              │
+
+        │  ┌──────────────────────┐    │  Layer               │              │
+
+        │  │  GameStateEngine     │───▶│  - State encoding    │              │
+
+        │  │  (Rules + History)   │    │  - Visual embedding  │              │
+
+        │  └──────────────────────┘    │  - Memory context    │              │
+
+        │                              └──────────────────────┘              │
+
+        │                                        │                           │
+
+        │                                        ▼                           │
+
+        │  ┌──────────────────────┐    ┌──────────────────────┐              │
+
+        │  │  StrategyMemory      │◀───│  GameReasoning       │              │
+
+        │  │  (MemoryStore)       │    │  Engine              │              │
+
+        │  │  - Store strategies  │    │  (LatentReasoner)    │              │
+
+        │  │  - Retrieve context  │    └──────────────────────┘              │
+
+        │  └──────────────────────┘                                          │
+
+        │                                                                     │
+
+        └─────────────────────────────────────────────────────────────────────┘'
+  - title: Components
+    subsections:
+    - title: Environment Adapters
+      subsections:
+      - title: APIGameAdapter
+        content: 'For games with programmatic APIs:'
+        code_blocks:
+        - language: python
+          content: "from nanobot.game import APIGameAdapter, GameState\n\ndef get_game_state()\
+            \ -> dict:\n    return {\n        \"board\": game.get_board(),\n     \
+            \   \"current_player\": game.current_player,\n        \"legal_moves\"\
+            : game.get_legal_moves(),\n    }\n\ndef execute_move(action: dict) ->\
+            \ dict:\n    result = game.make_move(action[\"move\"])\n    return {\n\
+            \        \"success\": True,\n        \"new_state\": get_game_state(),\n\
+            \        \"reward\": result.reward,\n    }\n\nadapter = APIGameAdapter(\n\
+            \    game_id=\"game-001\",\n    game_type=\"chess\",\n    state_getter=get_game_state,\n\
+            \    action_executor=execute_move,\n)"
+      - title: GUIGameAdapter
+        content: 'For games requiring screen capture:'
+        code_blocks:
+        - language: python
+          content: "from nanobot.game import GUIGameAdapter\n\ndef parse_screenshot(image)\
+            \ -> dict:\n    # Computer vision logic to extract game state\n    return\
+            \ {\"board\": [...], \"current_player\": \"X\", ...}\n\nadapter = GUIGameAdapter(\n\
+            \    game_id=\"game-001\",\n    game_type=\"solitaire\",\n    state_parser=parse_screenshot,\n\
+            \    game_window_region=(100, 100, 800, 600),\n)"
+    - title: Visual Perception
+      content: '```python
+
+        from nanobot.game import create_encoder, SimpleGridEncoder'
+- title: Auto-select best available encoder
+  content: encoder = create_encoder(encoder_type="auto", embedding_dim=256)
+- title: Or explicitly use grid encoder (no PyTorch required)
+  content: encoder = SimpleGridEncoder(embedding_dim=128, grid_size=(8, 8))
+- title: Encode a screenshot
+  content: 'screenshot = game.get_screenshot()
+
+    embedding = encoder.encode(screenshot)
+
+    print(f"Embedding shape: {embedding.embedding.shape}")
+
+    print(f"Confidence: {embedding.confidence}")
+
+    ```'
+  subsections:
+  - title: Multimodal Fusion
+    content: '```python
+
+      from nanobot.game import FusionConfig, MultimodalFusionLayer
+
+      from nanobot.agent.memory import MemoryStore'
+- title: Configure fusion weights
+  content: "config = FusionConfig(\n    total_dim=512,\n    state_dim=128,\n    visual_dim=256,\n\
+    \    memory_dim=128,\n    state_weight=0.4,\n    visual_weight=0.3,\n    memory_weight=0.3,\n\
+    )"
+- title: Create fusion layer
+  content: 'memory_store = MemoryStore(workspace_path)
+
+    fusion = MultimodalFusionLayer(config=config, memory_store=memory_store)'
+- title: Fuse modalities
+  content: "fused = fusion.fuse(\n    game_state={\"board\": [...], \"current_player\"\
+    : \"X\"},\n    visual_embedding=visual_embedding,\n    query=\"strategy game:tictactoe\"\
+    ,\n)"
+- title: Build context for LLM
+  content: 'context = fusion.build_context_summary(game_state, fused, memory_nodes)
+
+    ```'
+  subsections:
+  - title: Learning Controller
+    content: '```python
+
+      from pathlib import Path
+
+      from nanobot.game import GameLearningController, LearningConfig
+
+      from nanobot.providers import create_provider'
+- title: Configuration
+  content: "config = LearningConfig(\n    visual_encoder_type=\"auto\",\n    visual_embedding_dim=256,\n\
+    \    reasoning_timeout=10,\n    memory_top_k=5,\n    store_all_moves=True,\n)"
+- title: Create controller
+  content: "controller = GameLearningController(\n    provider=create_provider(\"\
+    openai\"),\n    model=\"gpt-4\",\n    environment=adapter,\n    workspace=Path(\"\
+    ./workspace\"),\n    config=config,\n    rules=TicTacToeRules(),\n)"
+- title: Play a single turn
+  content: move, result = await controller.play_turn()
+- title: Play a full game
+  content: 'game_result = await controller.play_game(max_turns=100)
+
+    print(f"Winner: {game_result[''winner'']}")
+
+    print(f"Win rate: {game_result[''learning_stats''][''win_rate'']:.2%}")
+
+    ```'
+  subsections:
+  - title: Configuration
+    code_blocks:
+    - language: json
+      content: "{\n  \"game_learning\": {\n    \"visual_encoder_type\": \"auto\",\n\
+        \    \"visual_embedding_dim\": 256,\n    \"visual_device\": \"cpu\",\n   \
+        \ \"fusion_weights\": [0.4, 0.3, 0.3],\n    \"reasoning_timeout\": 10,\n \
+        \   \"memory_top_k\": 5,\n    \"store_all_moves\": true,\n    \"log_screenshots\"\
+        : false\n  }\n}"
+    subsections:
+    - title: Configuration Options
+      content: '| Option | Type | Default | Description |
+
+        |--------|------|---------|-------------|
+
+        | `visual_encoder_type` | string | `"auto"` | Encoder type: `auto`, `mobilenet`,
+        `efficientnet`, `grid` |
+
+        | `visual_embedding_dim` | int | `256` | Dimension of visual embeddings |
+
+        | `visual_device` | string | `"cpu"` | PyTorch device for neural network encoders
+        |
+
+        | `fusion_weights` | tuple | `(0.4, 0.3, 0.3)` | Weights for (state, visual,
+        memory) |
+
+        | `reasoning_timeout` | int | `10` | Timeout in seconds for LLM reasoning
+        |
+
+        | `memory_top_k` | int | `5` | Number of memory nodes to retrieve |
+
+        | `store_all_moves` | bool | `true` | Store all moves or only game-ending
+        ones |
+
+        | `log_screenshots` | bool | `false` | Save screenshots to memory |'
+  - title: Health Endpoint
+    content: 'The game learning layer integrates with health monitoring:
+
+
+      ```python
+
+      from nanobot.game import get_game_health_status, extend_health_payload'
+- title: Get game-specific health status
+  content: status = get_game_health_status()
+- title: '{'
+- title: '"active_games": 2,'
+- title: '"games": {'
+- title: '"game-001": {'
+- title: '"status": "active",'
+- title: '"game_type": "tictactoe",'
+- title: '"current_turn": 5,'
+- title: '"win_rate": 0.65'
+- title: '},'
+- title: '"game-002": {...}'
+- title: '}'
+- title: '}'
+- title: Extend main health endpoint
+  content: 'health_payload = {"service": "nanobot", "status": "healthy"}
+
+    extended = extend_health_payload(health_payload)
+
+    ```'
+  subsections:
+  - title: Health Response Schema
+    code_blocks:
+    - language: json
+      content: "{\n  \"service\": \"nanobot\",\n  \"status\": \"healthy\",\n  \"games\"\
+        : {\n    \"active_games\": 1,\n    \"games\": {\n      \"tictactoe-001\":\
+        \ {\n        \"status\": \"active\",\n        \"game_id\": \"tictactoe-001\"\
+        ,\n        \"game_type\": \"tictactoe\",\n        \"game_over\": false,\n\
+        \        \"current_turn\": 5,\n        \"episode\": 3,\n        \"total_moves\"\
+        : 45,\n        \"win_rate\": 0.667,\n        \"visual_encoder\": \"SimpleGridEncoder\"\
+        ,\n        \"model\": \"gpt-4\"\n      }\n    }\n  }\n}"
+  - title: 'Example: TicTacToe Bot'
+    content: 'Complete example of a TicTacToe learning agent:'
+    code_blocks:
+    - language: python
+      content: "import asyncio\nfrom pathlib import Path\nfrom typing import Any\n\
+        \nfrom nanobot.game import (\n    APIGameAdapter,\n    GameLearningController,\n\
+        \    LearningConfig,\n)\nfrom nanobot.game.state_engine import GameRules\n\
+        from nanobot.providers import create_provider\n\n\nclass TicTacToeRules(GameRules):\n\
+        \    \"\"\"TicTacToe game rules implementation.\"\"\"\n\n    def get_legal_moves(self,\
+        \ state: dict[str, Any]) -> list[str]:\n        board = state.get(\"board\"\
+        , [\"\"] * 9)\n        return [str(i) for i in range(9) if board[i] == \"\"\
+        ]\n\n    def apply_move(self, state: dict[str, Any], move: str) -> dict[str,\
+        \ Any]:\n        new_state = state.copy()\n        board = new_state.get(\"\
+        board\", [\"\"] * 9).copy()\n        pos = int(move)\n        board[pos] =\
+        \ new_state.get(\"current_player\", \"X\")\n        new_state[\"board\"] =\
+        \ board\n        new_state[\"turn_number\"] = new_state.get(\"turn_number\"\
+        , 0) + 1\n        # Switch player\n        curr = new_state.get(\"current_player\"\
+        , \"X\")\n        new_state[\"current_player\"] = \"O\" if curr == \"X\" else\
+        \ \"X\"\n        return new_state\n\n    def check_win_conditions(self, state:\
+        \ dict[str, Any]) -> dict[str, Any]:\n        board = state.get(\"board\"\
+        , [\"\"] * 9)\n        win_patterns = [\n            [0, 1, 2], [3, 4, 5],\
+        \ [6, 7, 8],  # Rows\n            [0, 3, 6], [1, 4, 7], [2, 5, 8],  # Cols\n\
+        \            [0, 4, 8], [2, 4, 6],  # Diagonals\n        ]\n        for pattern\
+        \ in win_patterns:\n            cells = [board[i] for i in pattern]\n    \
+        \        if cells[0] != \"\" and cells[0] == cells[1] == cells[2]:\n     \
+        \           return {\"game_over\": True, \"winner\": cells[0]}\n        if\
+        \ \"\" not in board:\n            return {\"game_over\": True, \"winner\"\
+        : None}  # Draw\n        return {\"game_over\": False, \"winner\": None}\n\
+        \n    def get_next_player(self, state: dict[str, Any]) -> str:\n        return\
+        \ \"O\" if state.get(\"current_player\") == \"X\" else \"X\"\n\n\nclass TicTacToeGame:\n\
+        \    \"\"\"Simple TicTacToe game implementation.\"\"\"\n\n    def __init__(self):\n\
+        \        self.reset()\n\n    def reset(self):\n        self.board = [\"\"\
+        ] * 9\n        self.current_player = \"X\"\n        self.turn = 0\n      \
+        \  self.game_over = False\n        self.winner = None\n\n    def get_state(self)\
+        \ -> dict[str, Any]:\n        legal_moves = [str(i) for i in range(9) if self.board[i]\
+        \ == \"\"]\n        return {\n            \"board\": self.board.copy(),\n\
+        \            \"current_player\": self.current_player,\n            \"turn_number\"\
+        : self.turn,\n            \"legal_moves\": legal_moves,\n            \"game_over\"\
+        : self.game_over,\n            \"winner\": self.winner,\n        }\n\n   \
+        \ def execute_action(self, action: dict[str, Any]) -> dict[str, Any]:\n  \
+        \      move = int(action.get(\"move\", -1))\n        if move < 0 or move >\
+        \ 8 or self.board[move] != \"\":\n            return {\"success\": False,\
+        \ \"error\": \"Invalid move\"}\n\n        self.board[move] = self.current_player\n\
+        \        self.turn += 1\n\n        # Check win\n        win_patterns = [\n\
+        \            [0, 1, 2], [3, 4, 5], [6, 7, 8],\n            [0, 3, 6], [1,\
+        \ 4, 7], [2, 5, 8],\n            [0, 4, 8], [2, 4, 6],\n        ]\n      \
+        \  for pattern in win_patterns:\n            if all(self.board[i] == self.current_player\
+        \ for i in pattern):\n                self.game_over = True\n            \
+        \    self.winner = self.current_player\n                break\n\n        #\
+        \ Check draw\n        if not self.game_over and \"\" not in self.board:\n\
+        \            self.game_over = True\n\n        # Switch player\n        if\
+        \ not self.game_over:\n            self.current_player = \"O\" if self.current_player\
+        \ == \"X\" else \"X\"\n\n        return {\n            \"success\": True,\n\
+        \            \"new_state\": self.get_state(),\n            \"reward\": 1.0\
+        \ if self.winner else 0.0,\n        }\n\n\nasync def main():\n    # Initialize\
+        \ game\n    game = TicTacToeGame()\n\n    # Create environment adapter\n \
+        \   adapter = APIGameAdapter(\n        game_id=\"tictactoe-001\",\n      \
+        \  game_type=\"tictactoe\",\n        state_getter=game.get_state,\n      \
+        \  action_executor=game.execute_action,\n    )\n\n    # Create learning controller\n\
+        \    config = LearningConfig(\n        visual_encoder_type=\"grid\",\n   \
+        \     reasoning_timeout=15,\n        store_all_moves=True,\n    )\n\n    controller\
+        \ = GameLearningController(\n        provider=create_provider(\"openai\"),\n\
+        \        model=\"gpt-4\",\n        environment=adapter,\n        workspace=Path(\"\
+        ./workspace\"),\n        config=config,\n        rules=TicTacToeRules(),\n\
+        \    )\n\n    # Play multiple games\n    for episode in range(10):\n     \
+        \   game.reset()\n        result = await controller.play_game(max_turns=9)\n\
+        \        print(f\"Episode {episode + 1}: Winner = {result['winner']}\")\n\n\
+        \    # Print final stats\n    stats = controller.learning_state.get_stats()\n\
+        \    print(f\"\\nFinal Statistics:\")\n    print(f\"  Episodes: {stats['episode']}\"\
+        )\n    print(f\"  Win Rate: {stats['win_rate']:.2%}\")\n    print(f\"  Total\
+        \ Moves: {stats['total_moves']}\")\n\n\nif __name__ == \"__main__\":\n   \
+        \ asyncio.run(main())"
+  - title: Dependencies
+    subsections:
+    - title: Required
+      content: '- `numpy` - Numerical computing
+
+        - `Pillow` - Image processing
+
+        - `loguru` - Logging
+
+        - `pydantic` - Data validation'
+      lists:
+      - type: bullet
+        items:
+        - '`numpy` - Numerical computing'
+        - '`Pillow` - Image processing'
+        - '`loguru` - Logging'
+        - '`pydantic` - Data validation'
+    - title: Optional
+      content: '- `torch` + `torchvision` - Neural network visual encoders (MobileNet,
+        EfficientNet)
+
+        - `pyautogui` - GUI automation for screen capture
+
+        - `selenium` - Web-based game automation
+
+
+        Install optional dependencies as needed:
+
+
+        ```bash'
+      lists:
+      - type: bullet
+        items:
+        - '`torch` + `torchvision` - Neural network visual encoders (MobileNet, EfficientNet)'
+        - '`pyautogui` - GUI automation for screen capture'
+        - '`selenium` - Web-based game automation'
+- title: For neural network visual encoders
+  content: pip install torch torchvision
+- title: For GUI automation
+  content: pip install pyautogui
+- title: For web game automation
+  content: 'pip install selenium
+
+    ```'
+  subsections:
+  - title: Key Integration Points
+    content: 'The game learning layer integrates with existing nanobot components:
+
+
+      | Component | Integration |
+
+      |-----------|-------------|
+
+      | `GameReasoningEngine.select_best_move()` | Used for move selection via LatentReasoner
+      |
+
+      | `StrategyMemory.store_strategy()` | Used to store game strategies |
+
+      | `MemoryStore.get_entangled_context()` | Used for memory retrieval in fusion
+      |
+
+      | `MemoryStore._update_node()` | Used to update strategy entanglements |
+
+      | `MemoryStore.update_als()` | Used to update Active Learning State on game
+      end |'

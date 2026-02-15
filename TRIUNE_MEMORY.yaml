@@ -1,0 +1,356 @@
+_meta:
+  source: TRIUNE_MEMORY.md
+  format_version: '1.0'
+title: Triune Memory System
+sections:
+- title: Triune Memory System
+  content: The Triune Memory Translator is a universal `.md` → `.yaml` translation
+    system that enables nanobot to read token-efficient `.yaml` files while preserving
+    human-readable `.md` files for editing and inspection.
+  subsections:
+  - title: Overview
+    content: 'The Triune Memory concept maintains three layers:
+
+
+      1. **Human Layer** (`.md` files) - Human-readable, editable markdown files
+
+      2. **AI Layer** (`.yaml` files) - Machine-efficient, token-optimized structured
+      data
+
+      3. **Sync Layer** (Translator) - Bidirectional synchronization between the two'
+    lists:
+    - type: numbered
+      items:
+      - '**Human Layer** (`.md` files) - Human-readable, editable markdown files'
+      - '**AI Layer** (`.yaml` files) - Machine-efficient, token-optimized structured
+        data'
+      - '**Sync Layer** (Translator) - Bidirectional synchronization between the two'
+  - title: Architecture
+    code_blocks:
+    - language: ''
+      content: "┌─────────────────────────────────────────────────────────────────┐\n\
+        │                        WORKSPACE                                 │\n├─────────────────────────────────────────────────────────────────┤\n\
+        │  Human Layer (.md)          │          AI Layer (.yaml)         │\n│  ─────────────────\
+        \          │          ───────────────          │\n│  AGENTS.md      ←───────────┼──────→\
+        \   AGENTS.yaml              │\n│  SOUL.md        ←───────────┼──────→   SOUL.yaml\
+        \                │\n│  USER.md        ←───────────┼──────→   USER.yaml   \
+        \             │\n│  TOOLS.md       ←───────────┼──────→   TOOLS.yaml     \
+        \          │\n│  IDENTITY.md    ←───────────┼──────→   IDENTITY.yaml     \
+        \       │\n│                             │                               \
+        \     │\n│  memory/MEMORY.md ←─────────┼──────→   memory/MEMORY.yaml     \
+        \  │\n│  memory/HISTORY.md ←────────┼──────→   memory/HISTORY.yaml      │\n\
+        └─────────────────────────────┴───────────────────────────────────┘\n    \
+        \                          │\n                      Translator Module\n  \
+        \                            │\n                    nanobot/utils/translator.py"
+  - title: Benefits
+    subsections:
+    - title: Token Efficiency
+      content: '- YAML format removes redundant markdown syntax
+
+        - Structured data is more compact
+
+        - Estimated 20-40% reduction in context token usage'
+      lists:
+      - type: bullet
+        items:
+        - YAML format removes redundant markdown syntax
+        - Structured data is more compact
+        - Estimated 20-40% reduction in context token usage
+    - title: Maintainability
+      content: '- Edit `.md` files with any text editor
+
+        - Human-readable documentation preserved
+
+        - Version control friendly'
+      lists:
+      - type: bullet
+        items:
+        - Edit `.md` files with any text editor
+        - Human-readable documentation preserved
+        - Version control friendly
+    - title: Flexibility
+      content: '- Fallback to `.md` when `.yaml` doesn''t exist
+
+        - Bidirectional sync supported
+
+        - Incremental sync based on modification time'
+      lists:
+      - type: bullet
+        items:
+        - Fallback to `.md` when `.yaml` doesn't exist
+        - Bidirectional sync supported
+        - Incremental sync based on modification time
+  - title: Usage
+    subsections:
+    - title: CLI Command
+      content: '```bash'
+- title: Sync markdown to YAML (default)
+  content: nanobot translate
+- title: Sync YAML back to markdown
+  content: nanobot translate -d yaml-to-md
+- title: Bidirectional sync
+  content: nanobot translate -d bidirectional
+- title: Preview changes without modifying files
+  content: 'nanobot translate --dry-run
+
+    ```'
+  subsections:
+  - title: Automatic Sync
+    content: 'By default, nanobot syncs `.md` files to `.yaml` on startup. Configure
+      this in `config.json`:'
+    code_blocks:
+    - language: json
+      content: "{\n  \"translator\": {\n    \"enabled\": true,\n    \"autoSyncOnStartup\"\
+        : true,\n    \"syncDirection\": \"md_to_yaml\",\n    \"excludedFiles\": [\"\
+        README.md\", \"CHANGELOG.md\"]\n  }\n}"
+  - title: Configuration Options
+    content: '| Option | Default | Description |
+
+      |--------|---------|-------------|
+
+      | `enabled` | `true` | Enable/disable translator |
+
+      | `autoSyncOnStartup` | `true` | Auto-sync when nanobot starts |
+
+      | `syncDirection` | `"md_to_yaml"` | Direction: `md_to_yaml`, `yaml_to_md`,
+      `bidirectional` |
+
+      | `excludedFiles` | `["README.md", ...]` | Files to skip during sync |'
+  - title: File Format
+    subsections:
+    - title: Markdown Input
+      content: '```markdown
+
+        ---
+
+        version: 1.0
+
+        ---'
+- title: Agent Instructions
+  content: You are a helpful AI assistant.
+  subsections:
+  - title: Guidelines
+    content: '- Be concise and accurate
+
+      - Use tools when needed
+
+
+      ```python'
+    lists:
+    - type: bullet
+      items:
+      - Be concise and accurate
+      - Use tools when needed
+- title: Example code block
+  content: print("Hello")
+  code_blocks:
+  - language: ''
+    content: ''
+  subsections:
+  - title: YAML Output
+    code_blocks:
+    - language: yaml
+      content: "_meta:\n  source: AGENTS.md\n  format_version: '1.0'\nfrontmatter:\n\
+        \  version: 1.0\ntitle: Agent Instructions\nsections:\n  - title: Agent Instructions\n\
+        \    content: You are a helpful AI assistant.\n    subsections:\n      - title:\
+        \ Guidelines\n        lists:\n          - type: bullet\n            items:\n\
+        \              - Be concise and accurate\n              - Use tools when needed\n\
+        \        code_blocks:\n          - language: python\n            content:\
+        \ |\n              # Example code block\n              print(\"Hello\")"
+  - title: API Reference
+    subsections:
+    - title: Translator Module (`nanobot/utils/translator.py`)
+      subsections:
+      - title: Functions
+        subsections:
+        - title: '`parse_md_to_yaml(md_path: Path, yaml_path: Path) -> bool`'
+          content: Convert markdown file to structured YAML.
+        - title: '`export_yaml_to_md(yaml_path: Path, md_path: Path) -> bool`'
+          content: Export YAML back to readable markdown.
+        - title: '`sync_directory(directory: Path, direction: str = "md_to_yaml")
+            -> SyncStats`'
+          content: Sync all files in a directory.
+        - title: '`sync_all(workspace: Path, direction: str = "md_to_yaml") -> dict`'
+          content: Full project sync - workspace and memory directories.
+        - title: '`needs_sync(md_path: Path, yaml_path: Path) -> bool`'
+          content: Check if sync is needed based on modification time.
+        - title: '`load_yaml_or_md(base_path: Path, base_name: str) -> tuple`'
+          content: Load content preferring YAML, falling back to MD.
+      - title: Classes
+        subsections:
+        - title: '`TranslatorConfig`'
+          content: 'Configuration dataclass with fields:
+
+            - `enabled: bool = True`
+
+            - `auto_sync_on_startup: bool = True`
+
+            - `sync_direction: str = "bidirectional"`
+
+            - `excluded_files: list[str]`'
+    - title: Markdown Parser (`nanobot/utils/md_parser.py`)
+      subsections:
+      - title: '`parse_markdown(content: str) -> ParsedMarkdown`'
+        content: Parse markdown into structured dict.
+      - title: '`extract_frontmatter(content: str) -> tuple[dict | None, str]`'
+        content: Extract YAML frontmatter from markdown.
+      - title: '`extract_sections(content: str) -> list[Section]`'
+        content: Extract sections by header levels.
+      - title: '`extract_code_blocks(content: str) -> list[CodeBlock]`'
+        content: Extract fenced code blocks.
+      - title: '`extract_lists(content: str) -> list[dict]`'
+        content: Extract bullet/numbered/checkbox lists.
+    - title: YAML Writer (`nanobot/utils/yaml_writer.py`)
+      subsections:
+      - title: '`write_yaml(data: dict, path: Path) -> bool`'
+        content: Write dict to YAML with formatting.
+      - title: '`yaml_to_markdown(data: dict) -> str`'
+        content: Convert YAML structure back to markdown.
+  - title: Migration Guide
+    subsections:
+    - title: Existing Workspaces
+      content: "1. Run sync command:\n   \n\n2. Verify YAML files created:\n   \n\n\
+        3. Nanobot will automatically prefer YAML files on next run."
+      code_blocks:
+      - language: bash
+        content: nanobot translate
+      - language: bash
+        content: ls ~/.nanobot/workspace/*.yaml
+      lists:
+      - type: numbered
+        items:
+        - 'Run sync command:'
+      - type: numbered
+        items:
+        - 'Verify YAML files created:'
+      - type: numbered
+        items:
+        - Nanobot will automatically prefer YAML files on next run.
+    - title: Manual Testing
+      code_blocks:
+      - language: python
+        content: 'from nanobot.utils.translator import sync_all
+
+          from pathlib import Path
+
+
+          workspace = Path("~/.nanobot/workspace").expanduser()
+
+          result = sync_all(workspace, direction="md_to_yaml")
+
+          print(f"Synced: {result[''synced'']}, Skipped: {result[''skipped'']}")'
+  - title: Troubleshooting
+    subsections:
+    - title: YAML Not Loading
+      content: '1. Check file exists: `ls workspace/*.yaml`
+
+        2. Verify YAML is valid: `python -c "import yaml; yaml.safe_load(open(''FILE.yaml''))"`
+
+        3. Check for parse errors in logs'
+      lists:
+      - type: numbered
+        items:
+        - 'Check file exists: `ls workspace/*.yaml`'
+        - 'Verify YAML is valid: `python -c "import yaml; yaml.safe_load(open(''FILE.yaml''))"`'
+        - Check for parse errors in logs
+    - title: Sync Not Working
+      content: '1. Check modification times: `ls -la workspace/*.md workspace/*.yaml`
+
+        2. Force resync: Edit `.md` file and run translate again
+
+        3. Try dry-run first: `nanobot translate --dry-run`'
+      lists:
+      - type: numbered
+        items:
+        - 'Check modification times: `ls -la workspace/*.md workspace/*.yaml`'
+        - 'Force resync: Edit `.md` file and run translate again'
+        - 'Try dry-run first: `nanobot translate --dry-run`'
+    - title: Content Missing After Sync
+      content: '- Code blocks and lists are extracted into structured fields
+
+        - Content is restructured, not lost
+
+        - Use `export_yaml_to_md` to verify round-trip'
+      lists:
+      - type: bullet
+        items:
+        - Code blocks and lists are extracted into structured fields
+        - Content is restructured, not lost
+        - Use `export_yaml_to_md` to verify round-trip
+  - title: Best Practices
+    content: '1. **Edit .md files** - Let translator handle YAML generation
+
+      2. **Use frontmatter** - Metadata in YAML frontmatter is preserved
+
+      3. **Commit both formats** - Version control both .md and .yaml
+
+      4. **Review dry-run** - Use `--dry-run` before bulk sync
+
+      5. **Exclude documentation** - Add non-agent files to `excludedFiles`'
+    lists:
+    - type: numbered
+      items:
+      - '**Edit .md files** - Let translator handle YAML generation'
+      - '**Use frontmatter** - Metadata in YAML frontmatter is preserved'
+      - '**Commit both formats** - Version control both .md and .yaml'
+      - '**Review dry-run** - Use `--dry-run` before bulk sync'
+      - '**Exclude documentation** - Add non-agent files to `excludedFiles`'
+  - title: Technical Details
+    subsections:
+    - title: Supported Markdown Elements
+      content: '- YAML frontmatter (delimited by `---`)
+
+        - Headers (levels 1-6)
+
+        - Bullet lists (`-`, `*`, `+`)
+
+        - Numbered lists (`1.`, `2.`, etc.)
+
+        - Checkbox lists (`- [ ]`, `- [x]`)
+
+        - Fenced code blocks (with language tags)
+
+        - Paragraphs and text content'
+      lists:
+      - type: bullet
+        items:
+        - YAML frontmatter (delimited by `---`)
+        - Headers (levels 1-6)
+        - Bullet lists (`-`, `*`, `+`)
+        - Numbered lists (`1.`, `2.`, etc.)
+        - Checkbox lists (`- [ ]`, `- [x]`)
+        - Fenced code blocks (with language tags)
+        - Paragraphs and text content
+    - title: Sync Algorithm
+      content: '1. Scan directory for `.md` files
+
+        2. Check if corresponding `.yaml` exists
+
+        3. Compare modification times
+
+        4. If `.md` is newer or `.yaml` missing, parse and convert
+
+        5. Update `.yaml` file
+
+        6. Log operation'
+      lists:
+      - type: numbered
+        items:
+        - Scan directory for `.md` files
+        - Check if corresponding `.yaml` exists
+        - Compare modification times
+        - If `.md` is newer or `.yaml` missing, parse and convert
+        - Update `.yaml` file
+        - Log operation
+    - title: Performance
+      content: '- Sync time: < 100ms for typical workspace
+
+        - Incremental sync based on mtime (no full re-parse)
+
+        - Minimal memory footprint'
+      lists:
+      - type: bullet
+        items:
+        - 'Sync time: < 100ms for typical workspace'
+        - Incremental sync based on mtime (no full re-parse)
+        - Minimal memory footprint

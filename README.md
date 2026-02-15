@@ -50,6 +50,36 @@
   <img src="nanobot_arch.png" alt="nanobot architecture" width="800">
 </p>
 
+## 🧠 Triune Memory System
+
+nanobot features a **Triune Memory System** that maintains dual-format memory for optimal efficiency:
+
+- **📝 Markdown (`.md`)** - Human-readable source of truth for editing
+- **⚡ YAML (`.yaml`)** - Token-efficient runtime format for LLMs
+- **🔄 Automatic Sync** - Bidirectional translation with integrity verification
+- **✅ Drift Detection** - Checksums ensure MD-YAML pairs stay synchronized
+
+### Quick Start
+
+```bash
+# Verify sync status
+nanobot triune verify
+
+# Auto-regenerate missing/drifted YAML files
+nanobot triune verify --fix
+
+# Detailed report
+nanobot triune verify --report
+```
+
+**Benefits:**
+- 🎯 **30-50% token reduction** during runtime
+- 🔒 **Integrity verification** with checksums
+- 🔄 **Automatic sync** between formats
+- 📊 **Health monitoring** via `/health` endpoint
+
+See [Triune System Architecture](docs/triune-system.md) for detailed documentation.
+
 ## ✨ Features
 
 <table align="center">

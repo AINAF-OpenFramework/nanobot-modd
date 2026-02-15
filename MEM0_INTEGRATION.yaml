@@ -1,0 +1,419 @@
+_meta:
+  source: MEM0_INTEGRATION.md
+  format_version: '1.0'
+title: mem0 Integration Guide
+sections:
+- title: mem0 Integration Guide
+  content: This document explains how to use mem0 integration in nanobot for advanced
+    memory management with vector embeddings, multi-modal content, and hierarchical
+    relationships.
+  subsections:
+  - title: Overview
+    content: 'The mem0 integration provides:
+
+      - **Vector embeddings** for semantic search using mem0''s AI-powered memory
+      engine
+
+      - **Multi-modal memory** supporting text, code snippets, and images
+
+      - **Hierarchical relationships** for organizing knowledge in tree structures
+
+      - **Hybrid search** combining keyword and semantic similarity
+
+      - **Backward compatibility** with the existing fractal memory system'
+  - title: Installation
+    content: 'mem0 is already included as a dependency. If you need to install it
+      separately:'
+    code_blocks:
+    - language: bash
+      content: pip install mem0ai
+  - title: Configuration
+    content: 'Add mem0 configuration to your `~/.nanobot/config.json`:'
+    code_blocks:
+    - language: json
+      content: "{\n  \"memory\": {\n    \"enabled\": true,\n    \"provider\": \"mem0\"\
+        ,\n    \"top_k\": 5,\n    \"mem0_api_key\": \"\",\n    \"mem0_user_id\": \"\
+        my_user\",\n    \"mem0_org_id\": \"\",\n    \"mem0_project_id\": \"\",\n \
+        \   \"embedding_model\": \"text-embedding-3-small\",\n    \"embedding_dim\"\
+        : 1536,\n    \"use_hybrid_search\": true\n  }\n}"
+    subsections:
+    - title: Configuration Options
+      content: '| Option | Default | Description |
+
+        |--------|---------|-------------|
+
+        | `provider` | `"local"` | Use `"mem0"` to enable mem0 integration |
+
+        | `top_k` | `5` | Number of most relevant memories to retrieve |
+
+        | `mem0_api_key` | `""` | API key for mem0 cloud (optional for local use)
+        |
+
+        | `mem0_user_id` | `"nanobot_user"` | User ID for memory isolation |
+
+        | `mem0_org_id` | `""` | Organization ID (optional) |
+
+        | `mem0_project_id` | `""` | Project ID (optional) |
+
+        | `embedding_model` | `"text-embedding-3-small"` | Embedding model to use
+        |
+
+        | `embedding_dim` | `1536` | Dimension of embeddings |
+
+        | `use_hybrid_search` | `true` | Combine keyword and vector search |'
+  - title: Basic Usage
+    subsections:
+    - title: Automatic Memory Management
+      content: 'The easiest way to use mem0 is to let nanobot manage memories automatically:
+
+
+
+
+        Nanobot will automatically:
+
+        1. Create a memory node with the content
+
+        2. Generate vector embeddings using mem0
+
+        3. Store it for future retrieval
+
+
+        Later:
+
+
+
+
+        Nanobot will:
+
+        1. Use mem0 to search for relevant memories
+
+        2. Find the Python preference memory
+
+        3. Use it to answer your question'
+      code_blocks:
+      - language: bash
+        content: 'nanobot agent -m "Remember: I prefer Python over JavaScript"'
+      - language: bash
+        content: nanobot agent -m "What programming language do I prefer?"
+    - title: Manual Memory Management
+      content: 'You can also create and manage memories programmatically:
+
+
+        ```python
+
+        from pathlib import Path
+
+        from nanobot.agent.memory import MemoryStore
+
+        from nanobot.agent.memory_types import ContentType'
+- title: Initialize memory store with your workspace path
+- title: 'Note: Update this path to match your actual nanobot workspace'
+- title: Default is typically ~/.nanobot/workspace
+  content: "workspace = Path.home() / \".nanobot\" / \"workspace\"\nconfig = {\n \
+    \   \"provider\": \"mem0\",\n    \"mem0_user_id\": \"my_user\",\n    \"top_k\"\
+    : 5,\n}\nmemory = MemoryStore(workspace, config=config)"
+- title: Save a text memory
+  content: "node = memory.save_fractal_node(\n    content=\"Python uses duck typing\"\
+    ,\n    tags=[\"python\", \"typing\", \"dynamic\"],\n    summary=\"Python typing\
+    \ system\",\n    content_type=ContentType.TEXT,\n)"
+- title: Save a code snippet
+  content: "code_node = memory.save_code_snippet(\n    code=\"def greet(name):\\n\
+    \    return f'Hello, {name}!'\",\n    language=\"python\",\n    tags=[\"python\"\
+    , \"function\"],\n    summary=\"Greeting function\",\n)"
+- title: Retrieve relevant memories
+  content: 'results = memory.retrieve_relevant_nodes("python typing", k=5)
+
+    print(results)
+
+    ```'
+  subsections:
+  - title: Multi-Modal Memory
+    subsections:
+    - title: Text Memories
+      content: 'Standard text memories are the default:'
+      code_blocks:
+      - language: python
+        content: "memory.save_fractal_node(\n    content=\"Machine learning is a subset\
+          \ of AI\",\n    tags=[\"ml\", \"ai\", \"concepts\"],\n    summary=\"ML definition\"\
+          ,\n    content_type=ContentType.TEXT,\n)"
+    - title: Code Snippets
+      content: 'Save code with syntax highlighting metadata:
+
+
+
+
+        The code will be stored with:
+
+        - Language metadata (for syntax highlighting)
+
+        - Code-specific tags
+
+        - Full code content searchable via vector embeddings'
+      code_blocks:
+      - language: python
+        content: "memory.save_code_snippet(\n    code=\"\"\"\ndef factorial(n):\n\
+          \    if n <= 1:\n        return 1\n    return n * factorial(n - 1)\n\"\"\
+          \",\n    language=\"python\",\n    tags=[\"python\", \"recursion\", \"math\"\
+          ],\n    summary=\"Factorial function\",\n)"
+    - title: Images
+      content: 'Save images with descriptions:
+
+
+
+
+        Images are:
+
+        - Base64-encoded for storage
+
+        - Linked with text descriptions for searchability
+
+        - Retrievable with full binary data
+
+
+        Retrieve image data:
+
+
+        ```python
+
+        image_data, mime_type = memory.get_image_data(node_id)'
+      code_blocks:
+      - language: python
+        content: "from pathlib import Path\n\nmemory.save_image(\n    image_path=Path(\"\
+          screenshot.png\"),\n    tags=[\"ui\", \"design\", \"screenshot\"],\n   \
+          \ summary=\"Dashboard UI\",\n    description=\"User dashboard with metrics\"\
+          ,\n)"
+- title: image_data is bytes, mime_type is like "image/png"
+- title: Save to file
+  content: "with open(\"retrieved.png\", \"wb\") as f:\n    f.write(image_data)\n\
+    ```"
+  subsections:
+  - title: Hierarchical Relationships
+    content: 'Organize memories in tree structures:
+
+
+      ```python'
+- title: Create root node
+  content: "root = memory.save_fractal_node(\n    content=\"Web Development\",\n \
+    \   tags=[\"web\", \"development\"],\n    summary=\"Web dev root\",\n)"
+- title: Create child nodes
+  content: "frontend = memory.save_fractal_node(\n    content=\"Frontend development\
+    \ with React\",\n    tags=[\"web\", \"frontend\", \"react\"],\n    summary=\"\
+    Frontend\",\n    parent_id=root.id,\n)\n\nbackend = memory.save_fractal_node(\n\
+    \    content=\"Backend development with FastAPI\",\n    tags=[\"web\", \"backend\"\
+    , \"fastapi\"],\n    summary=\"Backend\",\n    parent_id=root.id,\n)"
+- title: Add grandchild
+  content: "react_hooks = memory.save_fractal_node(\n    content=\"React Hooks API\"\
+    ,\n    tags=[\"react\", \"hooks\", \"api\"],\n    summary=\"React Hooks\",\n \
+    \   parent_id=frontend.id,\n)\n```"
+  subsections:
+  - title: Navigating Hierarchies
+    content: '```python'
+- title: Get all children of a node
+  content: children = memory.get_children(root.id)
+- title: Get parent of a node
+  content: parent = memory.get_parent(react_hooks.id)
+- title: Get full hierarchy tree
+  content: tree = memory.get_hierarchy_tree(root.id, max_depth=3)
+- title: 'Returns:'
+- title: '{'
+- title: '"id": "root-id",'
+- title: '"summary": "Web dev root",'
+- title: '"tags": ["web", "development"],'
+- title: '"children": ['
+- title: '{'
+- title: '"id": "frontend-id",'
+- title: '"summary": "Frontend",'
+- title: '"children": ['
+- title: '{"id": "hooks-id", "summary": "React Hooks", "children": []}'
+- title: ']'
+- title: '},'
+- title: '{"id": "backend-id", "summary": "Backend", "children": []}'
+- title: ']'
+- title: '}'
+  content: '```'
+  subsections:
+  - title: Vector Search
+    content: 'mem0 automatically generates vector embeddings for all content, enabling
+      semantic search:
+
+
+      ```python'
+- title: 'These queries will find relevant content even without exact keyword matches:'
+- title: Semantic similarity
+  content: results = memory.retrieve_relevant_nodes("programming language features")
+- title: 'Finds: "Python uses duck typing", "Python functions", etc.'
+  content: results = memory.retrieve_relevant_nodes("photo of user interface")
+- title: 'Finds: Image memories with "ui", "dashboard" descriptions'
+  content: results = memory.retrieve_relevant_nodes("recursive algorithms")
+- title: 'Finds: Code snippets with recursion'
+  content: '```'
+  subsections:
+  - title: Hybrid Search
+    content: 'When `use_hybrid_search: true` is set, nanobot combines:
+
+      1. **Keyword matching** (fast, exact matches)
+
+      2. **Vector similarity** (semantic, finds related concepts)
+
+
+      This provides the best of both worlds:
+
+      - Fast retrieval of exact matches
+
+      - Discovery of semantically related content'
+  - title: Filtering and Search
+    subsections:
+    - title: Search by Content Type
+      content: '```python'
+- title: Find all code snippets
+  content: code_nodes = memory.search_by_type(ContentType.CODE)
+- title: Find Python code
+  content: "python_code = memory.search_by_type(\n    ContentType.CODE,\n    tags=[\"\
+    python\"],\n    limit=10,\n)"
+- title: Find all images
+  content: 'images = memory.search_by_type(ContentType.IMAGE)
+
+    ```'
+  subsections:
+  - title: Retrieve Specific Node
+    code_blocks:
+    - language: python
+      content: "node = memory.get_node_by_id(\"node-uuid-here\")\nif node:\n    print(f\"\
+        Content: {node.content}\")\n    print(f\"Type: {node.content_type}\")\n  \
+        \  print(f\"Tags: {node.tags}\")"
+  - title: Migration from Local Storage
+    content: 'The system automatically falls back to local storage if mem0 is not
+      available. To migrate:
+
+
+      1. **Update configuration** to use mem0 provider
+
+      2. **Existing local nodes** will continue to work
+
+      3. **New nodes** will use mem0 with embeddings
+
+      4. **Searches** will use mem0''s semantic search
+
+
+      No manual data migration is needed - the system maintains backward compatibility.'
+    lists:
+    - type: numbered
+      items:
+      - '**Update configuration** to use mem0 provider'
+      - '**Existing local nodes** will continue to work'
+      - '**New nodes** will use mem0 with embeddings'
+      - '**Searches** will use mem0''s semantic search'
+  - title: Performance Considerations
+    subsections:
+    - title: Local vs. Cloud
+      content: '- **Local mem0**: Runs embeddings locally, slower but private
+
+        - **Cloud mem0**: Uses cloud API, faster but requires API key'
+      lists:
+      - type: bullet
+        items:
+        - '**Local mem0**: Runs embeddings locally, slower but private'
+        - '**Cloud mem0**: Uses cloud API, faster but requires API key'
+    - title: Memory Limits
+      content: '- mem0 can handle millions of memories efficiently
+
+        - Local storage is recommended for small datasets (<10k memories)
+
+        - Cloud mem0 is recommended for large datasets (>10k memories)'
+      lists:
+      - type: bullet
+        items:
+        - mem0 can handle millions of memories efficiently
+        - Local storage is recommended for small datasets (<10k memories)
+        - Cloud mem0 is recommended for large datasets (>10k memories)
+    - title: Embedding Dimensions
+      content: '- Smaller dimensions (384, 768) = faster, less accurate
+
+        - Larger dimensions (1536, 3072) = slower, more accurate
+
+        - Default (1536) provides good balance'
+      lists:
+      - type: bullet
+        items:
+        - Smaller dimensions (384, 768) = faster, less accurate
+        - Larger dimensions (1536, 3072) = slower, more accurate
+        - Default (1536) provides good balance
+  - title: Troubleshooting
+    subsections:
+    - title: mem0 Not Available
+      content: 'If you see "mem0 provider not available" warnings:
+
+
+
+
+        Then restart nanobot.'
+      code_blocks:
+      - language: bash
+        content: pip install mem0ai
+    - title: Embeddings Taking Long
+      content: 'If embedding generation is slow:
+
+
+        1. Use a smaller embedding model
+
+        2. Reduce `embedding_dim` in config
+
+        3. Consider using cloud mem0 API'
+      lists:
+      - type: numbered
+        items:
+        - Use a smaller embedding model
+        - Reduce `embedding_dim` in config
+        - Consider using cloud mem0 API
+    - title: No Results Found
+      content: 'If searches return no results:
+
+
+        1. Check that memories have relevant tags
+
+        2. Try both keyword and semantic queries
+
+        3. Increase `top_k` value
+
+        4. Verify memories were saved successfully'
+      lists:
+      - type: numbered
+        items:
+        - Check that memories have relevant tags
+        - Try both keyword and semantic queries
+        - Increase `top_k` value
+        - Verify memories were saved successfully
+  - title: API Reference
+    content: 'See the main API reference in `FRACTAL_MEMORY.md` for:
+
+      - `MemoryStore` class methods
+
+      - `FractalNode` data structure
+
+      - Configuration options
+
+      - Full API documentation'
+  - title: Examples
+    content: 'See `tests/test_mem0_integration.py` for comprehensive examples of:
+
+      - Multi-modal memory usage
+
+      - Hierarchical relationships
+
+      - Vector search
+
+      - Hybrid search
+
+      - Error handling'
+  - title: Next Steps
+    content: '- Explore the demo: `python demo_fractal_memory.py`
+
+      - Read the tests: `tests/test_mem0_integration.py`
+
+      - Check the main docs: `FRACTAL_MEMORY.md`'
+    lists:
+    - type: bullet
+      items:
+      - 'Explore the demo: `python demo_fractal_memory.py`'
+      - 'Read the tests: `tests/test_mem0_integration.py`'
+      - 'Check the main docs: `FRACTAL_MEMORY.md`'

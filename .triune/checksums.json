@@ -1,0 +1,202 @@
+{
+  "/home/runner/work/nanobot/nanobot/COMMUNICATION.md": {
+    "algorithm": "md5",
+    "last_verified": "2026-02-15T13:50:47.948791Z",
+    "md_checksum": "aab3f11eb6e1ad9d888a2cabd3513c08",
+    "md_path": "/home/runner/work/nanobot/nanobot/COMMUNICATION.md",
+    "yaml_checksum": "2c82f7f476ed742dbc867ed4a264d1ab",
+    "yaml_path": "/home/runner/work/nanobot/nanobot/COMMUNICATION.yaml"
+  },
+  "/home/runner/work/nanobot/nanobot/CONFIG.md": {
+    "algorithm": "md5",
+    "last_verified": "2026-02-15T13:50:47.972869Z",
+    "md_checksum": "d35f2e4b5d8916e6e2b4e81144b80e5e",
+    "md_path": "/home/runner/work/nanobot/nanobot/CONFIG.md",
+    "yaml_checksum": "c8b8e93779dba4c382725f0f92f7a265",
+    "yaml_path": "/home/runner/work/nanobot/nanobot/CONFIG.yaml"
+  },
+  "/home/runner/work/nanobot/nanobot/ENTANGLED_MEMORY.md": {
+    "algorithm": "md5",
+    "last_verified": "2026-02-15T13:50:47.950932Z",
+    "md_checksum": "37e4f2582e0d79d3b634f1cd5e760eaf",
+    "md_path": "/home/runner/work/nanobot/nanobot/ENTANGLED_MEMORY.md",
+    "yaml_checksum": "c08c68043cbd06f1b94b9a9640bc2d7d",
+    "yaml_path": "/home/runner/work/nanobot/nanobot/ENTANGLED_MEMORY.yaml"
+  },
+  "/home/runner/work/nanobot/nanobot/FRACTAL_MEMORY.md": {
+    "algorithm": "md5",
+    "last_verified": "2026-02-15T13:50:47.936980Z",
+    "md_checksum": "0a3b8b2f980dc2dc272ab3285ac45e22",
+    "md_path": "/home/runner/work/nanobot/nanobot/FRACTAL_MEMORY.md",
+    "yaml_checksum": "05be21e4b3ecd9d2baa49c511a46a6e0",
+    "yaml_path": "/home/runner/work/nanobot/nanobot/FRACTAL_MEMORY.yaml"
+  },
+  "/home/runner/work/nanobot/nanobot/LATENT_REASONING.md": {
+    "algorithm": "md5",
+    "last_verified": "2026-02-15T13:50:47.988476Z",
+    "md_checksum": "bfe558d06cc3215b5f8da01a898f1a21",
+    "md_path": "/home/runner/work/nanobot/nanobot/LATENT_REASONING.md",
+    "yaml_checksum": "4b5efb802661cb63c033ba0a67deeb29",
+    "yaml_path": "/home/runner/work/nanobot/nanobot/LATENT_REASONING.yaml"
+  },
+  "/home/runner/work/nanobot/nanobot/MEM0_IMPLEMENTATION_SUMMARY.md": {
+    "algorithm": "md5",
+    "last_verified": "2026-02-15T13:50:47.962570Z",
+    "md_checksum": "dad71515f22418a89648949682032205",
+    "md_path": "/home/runner/work/nanobot/nanobot/MEM0_IMPLEMENTATION_SUMMARY.md",
+    "yaml_checksum": "5d89657e38f57f2b6286757006630cbd",
+    "yaml_path": "/home/runner/work/nanobot/nanobot/MEM0_IMPLEMENTATION_SUMMARY.yaml"
+  },
+  "/home/runner/work/nanobot/nanobot/MEM0_INTEGRATION.md": {
+    "algorithm": "md5",
+    "last_verified": "2026-02-15T13:50:48.001374Z",
+    "md_checksum": "622842c80381f2c5e69f4105f70f7e8f",
+    "md_path": "/home/runner/work/nanobot/nanobot/MEM0_INTEGRATION.md",
+    "yaml_checksum": "aa0a215603444b295476c0b7d5138346",
+    "yaml_path": "/home/runner/work/nanobot/nanobot/MEM0_INTEGRATION.yaml"
+  },
+  "/home/runner/work/nanobot/nanobot/SECURITY.md": {
+    "algorithm": "md5",
+    "last_verified": "2026-02-15T13:50:47.947908Z",
+    "md_checksum": "757f228fa43d521e305ce2bcf2a2a904",
+    "md_path": "/home/runner/work/nanobot/nanobot/SECURITY.md",
+    "yaml_checksum": "f94f0ce3f16b4a5f6f134a6450b9d351",
+    "yaml_path": "/home/runner/work/nanobot/nanobot/SECURITY.yaml"
+  },
+  "/home/runner/work/nanobot/nanobot/TRIUNE_MEMORY.md": {
+    "algorithm": "md5",
+    "last_verified": "2026-02-15T13:50:47.985605Z",
+    "md_checksum": "129c985596ea62ccc4b82de28128ac71",
+    "md_path": "/home/runner/work/nanobot/nanobot/TRIUNE_MEMORY.md",
+    "yaml_checksum": "b437a574524508ed1063f5c2b0f76bc1",
+    "yaml_path": "/home/runner/work/nanobot/nanobot/TRIUNE_MEMORY.yaml"
+  },
+  "/home/runner/work/nanobot/nanobot/docs/GAME_LEARNING.md": {
+    "algorithm": "md5",
+    "last_verified": "2026-02-15T13:50:48.016463Z",
+    "md_checksum": "e585e9dd220a8f5ebd207a229ed88891",
+    "md_path": "/home/runner/work/nanobot/nanobot/docs/GAME_LEARNING.md",
+    "yaml_checksum": "1622bac6394e5425a127224ed26fee9a",
+    "yaml_path": "/home/runner/work/nanobot/nanobot/docs/GAME_LEARNING.yaml"
+  },
+  "/home/runner/work/nanobot/nanobot/docs/MCP.md": {
+    "algorithm": "md5",
+    "last_verified": "2026-02-15T13:50:48.030196Z",
+    "md_checksum": "ef8f76e190c42cefd388ef1eb8cb0317",
+    "md_path": "/home/runner/work/nanobot/nanobot/docs/MCP.md",
+    "yaml_checksum": "534aece7608406a05435b37f7369aef3",
+    "yaml_path": "/home/runner/work/nanobot/nanobot/docs/MCP.yaml"
+  },
+  "/home/runner/work/nanobot/nanobot/docs/PRODUCTION_DEPLOYMENT.md": {
+    "algorithm": "md5",
+    "last_verified": "2026-02-15T13:50:48.018099Z",
+    "md_checksum": "195e7ea621fb63614a8a1e83c1226292",
+    "md_path": "/home/runner/work/nanobot/nanobot/docs/PRODUCTION_DEPLOYMENT.md",
+    "yaml_checksum": "41ef70f81ca4839fa7c101cdff218213",
+    "yaml_path": "/home/runner/work/nanobot/nanobot/docs/PRODUCTION_DEPLOYMENT.yaml"
+  },
+  "/home/runner/work/nanobot/nanobot/nanobot/skills/cron/SKILL.md": {
+    "algorithm": "md5",
+    "last_verified": "2026-02-15T13:50:48.091308Z",
+    "md_checksum": "ecbf96c51fa52797c3b5ff1eed7adb6e",
+    "md_path": "/home/runner/work/nanobot/nanobot/nanobot/skills/cron/SKILL.md",
+    "yaml_checksum": "7a6c262d14e87e4d214b7a5ccce47f12",
+    "yaml_path": "/home/runner/work/nanobot/nanobot/nanobot/skills/cron/SKILL.yaml"
+  },
+  "/home/runner/work/nanobot/nanobot/nanobot/skills/github/SKILL.md": {
+    "algorithm": "md5",
+    "last_verified": "2026-02-15T13:50:48.061545Z",
+    "md_checksum": "b2573581ad15bfaf366c25eec6cec7ce",
+    "md_path": "/home/runner/work/nanobot/nanobot/nanobot/skills/github/SKILL.md",
+    "yaml_checksum": "7c36ef39a0d65b007cd4a07e4b6b99d7",
+    "yaml_path": "/home/runner/work/nanobot/nanobot/nanobot/skills/github/SKILL.yaml"
+  },
+  "/home/runner/work/nanobot/nanobot/nanobot/skills/memory/SKILL.md": {
+    "algorithm": "md5",
+    "last_verified": "2026-02-15T13:50:48.093633Z",
+    "md_checksum": "6cf6ea5f9dbcc10671996d0279f08b42",
+    "md_path": "/home/runner/work/nanobot/nanobot/nanobot/skills/memory/SKILL.md",
+    "yaml_checksum": "bf810f105e3aa2fe51a2f8e74483fee5",
+    "yaml_path": "/home/runner/work/nanobot/nanobot/nanobot/skills/memory/SKILL.yaml"
+  },
+  "/home/runner/work/nanobot/nanobot/nanobot/skills/skill-creator/SKILL.md": {
+    "algorithm": "md5",
+    "last_verified": "2026-02-15T13:50:48.084279Z",
+    "md_checksum": "c93ef4afea04edc7266bdc8528291ea0",
+    "md_path": "/home/runner/work/nanobot/nanobot/nanobot/skills/skill-creator/SKILL.md",
+    "yaml_checksum": "70eaa4ba7ce5020535a78a24f845f2fa",
+    "yaml_path": "/home/runner/work/nanobot/nanobot/nanobot/skills/skill-creator/SKILL.yaml"
+  },
+  "/home/runner/work/nanobot/nanobot/nanobot/skills/summarize/SKILL.md": {
+    "algorithm": "md5",
+    "last_verified": "2026-02-15T13:50:48.088726Z",
+    "md_checksum": "76c65941b490404de830299f6a09d8d0",
+    "md_path": "/home/runner/work/nanobot/nanobot/nanobot/skills/summarize/SKILL.md",
+    "yaml_checksum": "5e6686597669028078b6c057ccd32c82",
+    "yaml_path": "/home/runner/work/nanobot/nanobot/nanobot/skills/summarize/SKILL.yaml"
+  },
+  "/home/runner/work/nanobot/nanobot/nanobot/skills/tmux/SKILL.md": {
+    "algorithm": "md5",
+    "last_verified": "2026-02-15T13:50:48.054634Z",
+    "md_checksum": "b7a7d0c93e554b4405c6ddc341abdab6",
+    "md_path": "/home/runner/work/nanobot/nanobot/nanobot/skills/tmux/SKILL.md",
+    "yaml_checksum": "0493f015c129680c3cff2f73395864cb",
+    "yaml_path": "/home/runner/work/nanobot/nanobot/nanobot/skills/tmux/SKILL.yaml"
+  },
+  "/home/runner/work/nanobot/nanobot/nanobot/skills/weather/SKILL.md": {
+    "algorithm": "md5",
+    "last_verified": "2026-02-15T13:50:48.057688Z",
+    "md_checksum": "b862fb7624a5e74321ceb332b2bfb734",
+    "md_path": "/home/runner/work/nanobot/nanobot/nanobot/skills/weather/SKILL.md",
+    "yaml_checksum": "8af9028c08afe4b3f54b5344e31420a2",
+    "yaml_path": "/home/runner/work/nanobot/nanobot/nanobot/skills/weather/SKILL.yaml"
+  },
+  "/home/runner/work/nanobot/nanobot/workspace/AGENTS.md": {
+    "algorithm": "md5",
+    "last_verified": "2026-02-15T13:50:48.033470Z",
+    "md_checksum": "4c8374ca45729634a6bbb8d0a64a92f4",
+    "md_path": "/home/runner/work/nanobot/nanobot/workspace/AGENTS.md",
+    "yaml_checksum": "b80ba961a656045cf7e18a422712a459",
+    "yaml_path": "/home/runner/work/nanobot/nanobot/workspace/AGENTS.yaml"
+  },
+  "/home/runner/work/nanobot/nanobot/workspace/HEARTBEAT.md": {
+    "algorithm": "md5",
+    "last_verified": "2026-02-15T13:50:48.045790Z",
+    "md_checksum": "53e79f4dfb76480f753615f6f4a30758",
+    "md_path": "/home/runner/work/nanobot/nanobot/workspace/HEARTBEAT.md",
+    "yaml_checksum": "fbae5817e3c0e28946e44b0826460379",
+    "yaml_path": "/home/runner/work/nanobot/nanobot/workspace/HEARTBEAT.yaml"
+  },
+  "/home/runner/work/nanobot/nanobot/workspace/SOUL.md": {
+    "algorithm": "md5",
+    "last_verified": "2026-02-15T13:50:48.041412Z",
+    "md_checksum": "9b703152b9a3304f9971a9cddd68ea38",
+    "md_path": "/home/runner/work/nanobot/nanobot/workspace/SOUL.md",
+    "yaml_checksum": "3ec5d61f87136a6fd7987abca07034f7",
+    "yaml_path": "/home/runner/work/nanobot/nanobot/workspace/SOUL.yaml"
+  },
+  "/home/runner/work/nanobot/nanobot/workspace/TOOLS.md": {
+    "algorithm": "md5",
+    "last_verified": "2026-02-15T13:50:48.039526Z",
+    "md_checksum": "cbbe50b7b6d7729369f9e771ed4a24f8",
+    "md_path": "/home/runner/work/nanobot/nanobot/workspace/TOOLS.md",
+    "yaml_checksum": "d3643f5d66171c8f4c710bae58701b88",
+    "yaml_path": "/home/runner/work/nanobot/nanobot/workspace/TOOLS.yaml"
+  },
+  "/home/runner/work/nanobot/nanobot/workspace/USER.md": {
+    "algorithm": "md5",
+    "last_verified": "2026-02-15T13:50:48.044617Z",
+    "md_checksum": "f345dceabc5728196b9879c5846a17ca",
+    "md_path": "/home/runner/work/nanobot/nanobot/workspace/USER.md",
+    "yaml_checksum": "fad37226b2c50030b9a8dd610fbc4e0e",
+    "yaml_path": "/home/runner/work/nanobot/nanobot/workspace/USER.yaml"
+  },
+  "/home/runner/work/nanobot/nanobot/workspace/memory/MEMORY.md": {
+    "algorithm": "md5",
+    "last_verified": "2026-02-15T13:50:48.047093Z",
+    "md_checksum": "d8ba8539a16032b587e6e6916feff566",
+    "md_path": "/home/runner/work/nanobot/nanobot/workspace/memory/MEMORY.md",
+    "yaml_checksum": "b9af934e36a7f8b22946f4c2e8bf6e12",
+    "yaml_path": "/home/runner/work/nanobot/nanobot/workspace/memory/MEMORY.yaml"
+  }
+}

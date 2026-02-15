@@ -1,0 +1,390 @@
+_meta:
+  source: CONFIG.md
+  format_version: '1.0'
+title: Nanobot Configuration Guide
+sections:
+- title: Nanobot Configuration Guide
+  content: This guide explains how to configure Nanobot using the `config.json` file.
+  subsections:
+  - title: Quick Start
+    content: "1. **Copy the example config:**\n   \n\n2. **Add your API keys:**\n\
+      \   Edit `~/.nanobot/config.json` and replace the placeholder API keys with\
+      \ your actual keys.\n\n3. **Choose your LLM provider:**\n   - For OpenAI: Set\
+      \ `providers.openai.apiKey` and use models like `gpt-4` or `gpt-3.5-turbo`\n\
+      \   - For Gemini: Set `providers.gemini.apiKey` and use models like `gemini/gemini-2.0-flash-exp`\n\
+      \   - For multiple providers: Set API keys for all providers you want to use"
+    code_blocks:
+    - language: bash
+      content: "mkdir -p ~/.nanobot\n   cp config.example.json ~/.nanobot/config.json"
+    lists:
+    - type: numbered
+      items:
+      - '**Copy the example config:**'
+    - type: numbered
+      items:
+      - '**Add your API keys:**'
+    - type: numbered
+      items:
+      - '**Choose your LLM provider:**'
+  - title: Configuration File Location
+    content: 'Default location: `~/.nanobot/config.json`
+
+
+      The config file uses **camelCase** for JSON keys (e.g., `apiKey`, `maxTokens`)
+      which are automatically converted to **snake_case** internally (e.g., `api_key`,
+      `max_tokens`).'
+  - title: Configuration Structure
+    subsections:
+    - title: 1. Agents Configuration
+      content: 'Controls the default behavior of the AI agent:
+
+
+
+
+        **Fields:**
+
+        - `workspace`: Directory where the agent can read/write files
+
+        - `model`: Default LLM model to use (format: `provider/model-name`)
+
+        - `maxTokens`: Maximum tokens in response
+
+        - `temperature`: Creativity level (0.0-1.0)
+
+        - `maxToolIterations`: Max number of tool calls per conversation turn
+
+        - `memoryWindow`: Number of recent messages to keep in context'
+      code_blocks:
+      - language: json
+        content: "{\n  \"agents\": {\n    \"defaults\": {\n      \"workspace\": \"\
+          ~/.nanobot/workspace\",\n      \"model\": \"gemini/gemini-2.0-flash-exp\"\
+          ,\n      \"maxTokens\": 8192,\n      \"temperature\": 0.7,\n      \"maxToolIterations\"\
+          : 20,\n      \"memoryWindow\": 50\n    }\n  }\n}"
+    - title: 2. Providers Configuration
+      content: 'Configure API keys and endpoints for different LLM providers:
+
+
+
+
+        **Supported Providers:**
+
+        - `openai` - OpenAI API (GPT-4, GPT-3.5, etc.)
+
+        - `gemini` - Google Gemini API
+
+        - `anthropic` - Anthropic Claude API
+
+        - `openrouter` - OpenRouter (gateway for many models)
+
+        - `deepseek` - DeepSeek API
+
+        - `groq` - Groq API (fast inference)
+
+        - `zhipu` - Zhipu AI (GLM models)
+
+        - `dashscope` - Alibaba DashScope (Qwen models)
+
+        - `moonshot` - Moonshot AI (Kimi)
+
+        - `minimax` - MiniMax API
+
+        - `vllm` - Local vLLM deployment
+
+        - `aihubmix` - AiHubMix gateway
+
+        - `custom` - Any OpenAI-compatible endpoint
+
+
+        **Provider Fields:**
+
+        - `apiKey`: Your API key (required)
+
+        - `apiBase`: Custom API endpoint URL (optional, most providers have defaults)
+
+        - `extraHeaders`: Additional HTTP headers (optional, e.g., for custom auth)
+
+
+        **Getting API Keys:**
+
+        - OpenAI: https://platform.openai.com/api-keys
+
+        - Gemini: https://aistudio.google.com/app/apikey
+
+        - Anthropic: https://console.anthropic.com/
+
+        - OpenRouter: https://openrouter.ai/keys (supports many models with one key)'
+      code_blocks:
+      - language: json
+        content: "{\n  \"providers\": {\n    \"openai\": {\n      \"apiKey\": \"sk-YOUR_OPENAI_API_KEY_HERE\"\
+          ,\n      \"apiBase\": null,\n      \"extraHeaders\": null\n    },\n    \"\
+          gemini\": {\n      \"apiKey\": \"YOUR_GEMINI_API_KEY_HERE\",\n      \"apiBase\"\
+          : null,\n      \"extraHeaders\": null\n    }\n  }\n}"
+    - title: 3. Memory Configuration
+      content: 'Configure the Fractal Memory system and Active Learning State (ALS):
+
+
+
+
+        **Core Fields:**
+
+        - `enabled`: Enable/disable memory system
+
+        - `provider`: Memory provider (`"local"` or `"mem0"`)
+
+        - `topK`: Number of relevant memories to retrieve
+
+        - `archiveDir`: Directory for lesson archives (relative to workspace)
+
+        - `alsEnabled`: Enable Active Learning State tracking
+
+
+        **Local Memory Provider (Default):**
+
+        - Uses local files: `MEMORY.md`, `ALS.json`, `fractal_index.json`
+
+        - Stores lesson archives in `archives/lesson_*.json`
+
+        - No API key required
+
+        - Supports hybrid search (keyword + vector)
+
+
+        **mem0 Cloud Provider (Optional):**
+
+        Configure these fields if using mem0 (https://mem0.ai):
+
+        - `mem0ApiKey`: Your mem0 API key
+
+        - `mem0UserId`: User identifier for mem0
+
+        - `mem0OrgId`: Organization ID (optional)
+
+        - `mem0ProjectId`: Project ID (optional)
+
+        - `mem0Version`: API version
+
+
+        **Embedding Settings:**
+
+        - `embeddingModel`: OpenAI embedding model (requires OpenAI API key)
+
+        - `embeddingDim`: Embedding dimension (1536 for text-embedding-3-small)
+
+        - `useHybridSearch`: Combine keyword and vector search
+
+
+        **Latent Retry Settings:**
+
+        - `latentRetryAttempts`: Number of retry attempts for latent LLM calls
+
+        - `latentRetryMinWait`: Minimum backoff wait (seconds)
+
+        - `latentRetryMaxWait`: Maximum backoff wait (seconds)
+
+        - `latentRetryMultiplier`: Exponential backoff multiplier
+
+
+        **Note on Sentence Transformers:**
+
+        Sentence Transformers is a Python library for generating embeddings locally.
+        To use it:
+
+        1. Install: `pip install sentence-transformers`
+
+        2. Set `embeddingModel` to a HuggingFace model like `"sentence-transformers/all-MiniLM-L6-v2"`
+
+        3. No API key needed - runs locally
+
+
+        However, the current implementation uses OpenAI embeddings by default. For
+        local embeddings, you would need to modify the `MemoryStore` class to support
+        sentence-transformers.'
+      code_blocks:
+      - language: json
+        content: "{\n  \"memory\": {\n    \"enabled\": true,\n    \"provider\": \"\
+          local\",\n    \"topK\": 5,\n    \"archiveDir\": \"archives\",\n    \"alsEnabled\"\
+          : true,\n    \"mem0ApiKey\": \"\",\n    \"mem0UserId\": \"nanobot_user\"\
+          ,\n    \"mem0OrgId\": \"\",\n    \"mem0ProjectId\": \"\",\n    \"mem0Version\"\
+          : \"v1.1\",\n    \"embeddingModel\": \"text-embedding-3-small\",\n    \"\
+          embeddingDim\": 1536,\n    \"useHybridSearch\": true,\n    \"latentRetryAttempts\"\
+          : 3,\n    \"latentRetryMinWait\": 1.0,\n    \"latentRetryMaxWait\": 5.0,\n\
+          \    \"latentRetryMultiplier\": 1.0\n  }\n}"
+    - title: 4. Channels Configuration
+      content: 'Enable chat integrations (WhatsApp, Telegram, Discord, etc.):
+
+
+
+
+        See individual channel documentation for setup instructions.'
+      code_blocks:
+      - language: json
+        content: "{\n  \"channels\": {\n    \"telegram\": {\n      \"enabled\": true,\n\
+          \      \"token\": \"YOUR_BOT_TOKEN\",\n      \"allowFrom\": [\"user123\"\
+          , \"user456\"],\n      \"proxy\": null\n    }\n  }\n}"
+    - title: 5. Tools Configuration
+      content: 'Configure available tools:
+
+
+
+
+        **Fields:**
+
+        - `web.search.apiKey`: Brave Search API key (get from https://brave.com/search/api/)
+
+        - `web.search.maxResults`: Max search results to return
+
+        - `exec.timeout`: Shell command timeout in seconds
+
+        - `restrictToWorkspace`: Restrict file access to workspace only'
+      code_blocks:
+      - language: json
+        content: "{\n  \"tools\": {\n    \"web\": {\n      \"search\": {\n       \
+          \ \"apiKey\": \"YOUR_BRAVE_SEARCH_API_KEY\",\n        \"maxResults\": 5\n\
+          \      }\n    },\n    \"exec\": {\n      \"timeout\": 60\n    },\n    \"\
+          restrictToWorkspace\": false\n  }\n}"
+    - title: 6. Gateway Configuration
+      content: 'Configure the HTTP server:'
+      code_blocks:
+      - language: json
+        content: "{\n  \"gateway\": {\n    \"host\": \"0.0.0.0\",\n    \"port\": 18790\n\
+          \  }\n}"
+  - title: Multi-Provider Setup
+    content: 'Nanobot automatically selects the right provider based on the model
+      name:
+
+
+      **Example 1: Using OpenAI**
+
+
+
+      **Example 2: Using Gemini**
+
+
+
+      **Example 3: Multiple Providers**
+
+
+
+      Then switch models by changing `agents.defaults.model`:
+
+      - `"gpt-4"` → uses OpenAI
+
+      - `"gemini/gemini-2.0-flash-exp"` → uses Gemini
+
+      - `"claude-opus-4"` → uses Anthropic'
+    code_blocks:
+    - language: json
+      content: "{\n  \"agents\": {\n    \"defaults\": {\n      \"model\": \"gpt-4\"\
+        \n    }\n  },\n  \"providers\": {\n    \"openai\": {\n      \"apiKey\": \"\
+        sk-...\"\n    }\n  }\n}"
+    - language: json
+      content: "{\n  \"agents\": {\n    \"defaults\": {\n      \"model\": \"gemini/gemini-2.0-flash-exp\"\
+        \n    }\n  },\n  \"providers\": {\n    \"gemini\": {\n      \"apiKey\": \"\
+        ...\"\n    }\n  }\n}"
+    - language: json
+      content: "{\n  \"providers\": {\n    \"openai\": {\n      \"apiKey\": \"sk-...\"\
+        \n    },\n    \"gemini\": {\n      \"apiKey\": \"...\"\n    },\n    \"anthropic\"\
+        : {\n      \"apiKey\": \"sk-ant-...\"\n    }\n  }\n}"
+  - title: Common Issues
+    subsections:
+    - title: '"Extra inputs are not permitted" Error'
+      content: 'This error occurs when your config.json contains fields that are not
+        defined in the schema.
+
+
+        **Solution:**
+
+        1. Compare your config.json with the example: `config.example.json`
+
+        2. Remove any fields not present in the example
+
+        3. Make sure field names use camelCase (e.g., `apiKey` not `api_key`)
+
+
+        **Common culprits:**
+
+        - Old memory fields like `memoryType`, `vectorStore`, `embeddingProvider`
+
+        - Typos in field names
+
+        - Extra custom fields'
+    - title: No API Key Configured
+      content: '**Solution:**
+
+        1. Open `~/.nanobot/config.json`
+
+        2. Find the provider you want to use (e.g., `providers.openai`)
+
+        3. Replace the placeholder with your actual API key
+
+        4. Make sure the `model` in `agents.defaults` matches your provider'
+    - title: Memory Not Working
+      content: '**Checklist:**
+
+        - [ ] `memory.enabled` is `true`
+
+        - [ ] `memory.provider` is `"local"` (or `"mem0"` with valid API key)
+
+        - [ ] Workspace directory exists and is writable
+
+        - [ ] For embeddings: OpenAI API key is configured
+
+        - [ ] For mem0: `mem0ApiKey` is set'
+  - title: Environment Variables
+    content: 'You can also configure Nanobot using environment variables with the
+      prefix `NANOBOT_`:
+
+
+      ```bash'
+- title: Set OpenAI API key
+  content: export NANOBOT_PROVIDERS__OPENAI__API_KEY="sk-..."
+- title: Set model
+  content: export NANOBOT_AGENTS__DEFAULTS__MODEL="gpt-4"
+- title: Enable memory
+  content: 'export NANOBOT_MEMORY__ENABLED="true"
+
+    ```
+
+
+    Note the double underscore `__` for nested fields.'
+  subsections:
+  - title: Validation
+    content: 'To validate your config:'
+    code_blocks:
+    - language: python
+      content: "from nanobot.config.loader import load_config\n\ntry:\n    config\
+        \ = load_config()\n    print(\"✓ Config is valid!\")\n    print(f\"Using model:\
+        \ {config.agents.defaults.model}\")\n    print(f\"Memory enabled: {config.memory.enabled}\"\
+        )\nexcept Exception as e:\n    print(f\"✗ Config error: {e}\")"
+  - title: Security Best Practices
+    content: '1. **Never commit API keys** to version control
+
+      2. **Use environment variables** for sensitive values in production
+
+      3. **Restrict file access** with `tools.restrictToWorkspace: true`
+
+      4. **Use allowlists** in channel configs to control access
+
+      5. **Keep config.json permissions secure**: `chmod 600 ~/.nanobot/config.json`'
+    lists:
+    - type: numbered
+      items:
+      - '**Never commit API keys** to version control'
+      - '**Use environment variables** for sensitive values in production'
+      - '**Restrict file access** with `tools.restrictToWorkspace: true`'
+      - '**Use allowlists** in channel configs to control access'
+      - '**Keep config.json permissions secure**: `chmod 600 ~/.nanobot/config.json`'
+  - title: See Also
+    content: '- [README.md](README.md) - Main documentation
+
+      - [nanobot/config/schema.py](nanobot/config/schema.py) - Complete schema definition
+
+      - [nanobot/providers/registry.py](nanobot/providers/registry.py) - Provider
+      registry'
+    lists:
+    - type: bullet
+      items:
+      - '[README.md](README.md) - Main documentation'
+      - '[nanobot/config/schema.py](nanobot/config/schema.py) - Complete schema definition'
+      - '[nanobot/providers/registry.py](nanobot/providers/registry.py) - Provider
+        registry'
