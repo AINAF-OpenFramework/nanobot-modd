@@ -71,6 +71,14 @@
     "yaml_checksum": "b437a574524508ed1063f5c2b0f76bc1",
     "yaml_path": "/home/runner/work/nanobot/nanobot/TRIUNE_MEMORY.yaml"
   },
+  "/home/runner/work/nanobot/nanobot/TRIUNE_PHASE2_SUMMARY.md": {
+    "algorithm": "md5",
+    "last_verified": "2026-02-15T13:57:00.331122Z",
+    "md_checksum": "c50cd532737c3c58a1ecedb36dcfe6dc",
+    "md_path": "/home/runner/work/nanobot/nanobot/TRIUNE_PHASE2_SUMMARY.md",
+    "yaml_checksum": "d482856c6f7cfa005b2edf8eb862102a",
+    "yaml_path": "/home/runner/work/nanobot/nanobot/TRIUNE_PHASE2_SUMMARY.yaml"
+  },
   "/home/runner/work/nanobot/nanobot/docs/GAME_LEARNING.md": {
     "algorithm": "md5",
     "last_verified": "2026-02-15T13:50:48.016463Z",
