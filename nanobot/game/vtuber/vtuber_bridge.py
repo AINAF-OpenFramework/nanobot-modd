@@ -19,6 +19,10 @@ class VTuberOutput:
     - TTS-ready format (optional)
     """
 
+    # Expression intensity thresholds
+    SCORE_THRESHOLD_POSITIVE = 5.0  # Very good move
+    SCORE_THRESHOLD_NEGATIVE = -3.0  # Bad move
+
     def __init__(self, output_format: str = "json", enable_tts: bool = False):
         """
         Initialize VTuber output handler.
@@ -161,9 +165,9 @@ class VTuberOutput:
         
         # Adjust expression intensity based on score
         if score is not None:
-            if score > 5.0:
+            if score > self.SCORE_THRESHOLD_POSITIVE:
                 expression = "joy"  # Very good move
-            elif score < -3.0:
+            elif score < self.SCORE_THRESHOLD_NEGATIVE:
                 expression = "concerned"  # Bad move
         
         return expression
@@ -180,7 +184,9 @@ class VTuberOutput:
         Returns:
             TTS-formatted text
         """
-        # Remove emojis
+        # Remove emojis using Unicode ranges
+        # Note: Some ranges overlap, which is intentional for comprehensive emoji coverage
+        # CodeQL warning about overlapping ranges is expected and safe here
         import re
         emoji_pattern = re.compile(
             "[\U0001F600-\U0001F64F"  # Emoticons

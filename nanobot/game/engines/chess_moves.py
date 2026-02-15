@@ -85,12 +85,12 @@ class MoveGenerator:
         """
         Convert move strings to numerical vectors for ML evaluation.
         
-        Uses a 73-element encoding for each move:
+        Uses a 133-element encoding for each move:
         - From square: 64 elements (one-hot encoding of source square)
         - To square: 64 elements (one-hot encoding of destination square)
         - Promotion piece: 5 elements (one-hot: queen, rook, bishop, knight, none)
         
-        Total: 64 + 64 + 5 = 133 elements per move (using compact representation)
+        Total: 64 + 64 + 5 = 133 elements per move
         
         Args:
             moves_list: List of moves in UCI notation

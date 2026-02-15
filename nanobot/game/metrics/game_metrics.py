@@ -21,6 +21,11 @@ class MetricsTracker:
     Logs metrics with timestamps for performance tracking and analysis.
     """
 
+    # Normalization constants for score variance and consistency
+    SEPARATION_NORMALIZER = 10.0  # Typical score separation range
+    STD_DEV_NORMALIZER = 5.0  # Typical standard deviation range
+    CONSISTENCY_NORMALIZER = 5.0  # Typical consistency deviation range
+
     def __init__(self, log_file: str | None = None):
         """
         Initialize metrics tracker.
@@ -156,8 +161,8 @@ class MetricsTracker:
             second_best = sorted_scores[1] if len(sorted_scores) > 1 else sorted_scores[0]
             separation = abs(best_score - second_best)
             
-            # Normalize separation (assuming typical range 0-10)
-            separation_component = min(separation / 10.0, 1.0)
+            # Normalize separation
+            separation_component = min(separation / self.SEPARATION_NORMALIZER, 1.0)
         else:
             separation_component = 1.0
         
@@ -167,8 +172,8 @@ class MetricsTracker:
         variance = sum((s - mean_score) ** 2 for s in scores) / len(scores)
         std_dev = variance ** 0.5
         
-        # Normalize variance (assuming typical std dev 0-5)
-        variance_component = 1.0 - min(std_dev / 5.0, 1.0)
+        # Normalize variance
+        variance_component = 1.0 - min(std_dev / self.STD_DEV_NORMALIZER, 1.0)
         
         # Component 3: Historical consistency (if available)
         if historical_scores:
@@ -217,8 +222,8 @@ class MetricsTracker:
         avg_historical = sum(historical_means) / len(historical_means)
         deviation = abs(current_mean - avg_historical)
         
-        # Normalize (assuming typical range 0-5)
-        consistency = 1.0 - min(deviation / 5.0, 1.0)
+        # Normalize
+        consistency = 1.0 - min(deviation / self.CONSISTENCY_NORMALIZER, 1.0)
         
         return consistency
 
