@@ -16,7 +16,7 @@ except ImportError:
 class ChessComAutomation:
     """
     Executes chess moves via mouse automation.
-    
+
     Implements human-like timing, randomized delays, and bezier curve
     mouse movements to avoid detection.
     """
@@ -34,7 +34,7 @@ class ChessComAutomation:
     ):
         """
         Initialize GUI automation for Chess.com.
-        
+
         Args:
             board_region: (x, y, width, height) of the chess board
             min_move_delay: Minimum delay before making a move (seconds)
@@ -46,15 +46,15 @@ class ChessComAutomation:
                 "pyautogui is required for GUI automation. "
                 "Install with: pip install 'nanobot-ai[chesscom]'"
             )
-        
+
         self.board_region = board_region
         self.min_move_delay = min_move_delay
         self.max_move_delay = max_move_delay
         self.human_like = human_like
-        
+
         # Safety: Set fail-safe to allow emergency stop
         pyautogui.FAILSAFE = True
-        
+
         logger.debug(
             f"ChessComAutomation initialized: region={board_region}, "
             f"delays=({min_move_delay}, {max_move_delay}), human_like={human_like}"
@@ -65,14 +65,14 @@ class ChessComAutomation:
     ) -> bool:
         """
         Execute a chess move on Chess.com.
-        
+
         Args:
             move: Move in UCI notation (e.g., "e2e4", "e7e8q" for promotion)
             board_orientation: "white" or "black" (affects square coordinates)
-            
+
         Returns:
             True if move was executed successfully
-            
+
         Example:
             >>> automation = ChessComAutomation((100, 100, 600, 600))
             >>> automation.execute_move("e2e4", "white")
@@ -83,44 +83,44 @@ class ChessComAutomation:
             if len(move) < 4:
                 logger.error(f"Invalid move format: {move}")
                 return False
-            
+
             from_square = move[:2]
             to_square = move[2:4]
             promotion = move[4:5] if len(move) > 4 else None
-            
+
             # Random delay before move
             if self.human_like:
                 self.random_delay()
-            
+
             # Get screen coordinates
             from_coords = self.square_to_screen_coords(from_square, board_orientation)
             to_coords = self.square_to_screen_coords(to_square, board_orientation)
-            
+
             # Execute move
             if self.human_like:
                 self.human_like_mouse_move(from_coords, from_coords)
             else:
                 pyautogui.moveTo(from_coords[0], from_coords[1])
-            
+
             # Click and drag to target square
             pyautogui.mouseDown()
             time.sleep(0.05 + random.uniform(0, 0.1))
-            
+
             if self.human_like:
                 self.human_like_mouse_move(from_coords, to_coords)
             else:
                 pyautogui.moveTo(to_coords[0], to_coords[1])
-            
+
             pyautogui.mouseUp()
-            
+
             # Handle promotion if needed
             if promotion:
                 time.sleep(0.2)
                 self.handle_promotion(promotion)
-            
+
             logger.info(f"Executed move: {move} (orientation={board_orientation})")
             return True
-            
+
         except Exception as e:
             logger.error(f"Failed to execute move {move}: {e}")
             return False
@@ -130,40 +130,40 @@ class ChessComAutomation:
     ) -> tuple[int, int]:
         """
         Convert chess square (e.g., 'e4') to screen coordinates.
-        
+
         Args:
             square: Chess square in algebraic notation (e.g., "e4")
             orientation: "white" or "black"
-            
+
         Returns:
             Tuple of (x, y) screen coordinates
         """
         if len(square) != 2:
             raise ValueError(f"Invalid square format: {square}")
-        
+
         file_char = square[0]
         rank_char = square[1]
-        
+
         if file_char not in self.FILES or rank_char not in self.RANKS:
             raise ValueError(f"Invalid square: {square}")
-        
+
         file_idx = self.FILES.index(file_char)
         rank_idx = self.RANKS.index(rank_char)
-        
+
         # Flip coordinates if playing as black
         if orientation == "black":
             file_idx = 7 - file_idx
             rank_idx = 7 - rank_idx
-        
+
         # Calculate screen coordinates
         x, y, width, height = self.board_region
         square_width = width / 8
         square_height = height / 8
-        
+
         # Calculate center of square
         screen_x = int(x + (file_idx + 0.5) * square_width)
         screen_y = int(y + (7 - rank_idx + 0.5) * square_height)
-        
+
         return (screen_x, screen_y)
 
     def human_like_mouse_move(
@@ -171,7 +171,7 @@ class ChessComAutomation:
     ) -> None:
         """
         Move mouse with human-like bezier curve path.
-        
+
         Args:
             start: Starting (x, y) coordinates
             end: Ending (x, y) coordinates
@@ -185,11 +185,11 @@ class ChessComAutomation:
             end[0] + random.randint(-50, 50),
             end[1] + random.randint(-50, 50),
         )
-        
+
         # Simplified bezier curve (would use more sophisticated path in production)
         steps = random.randint(20, 40)
         duration = random.uniform(0.3, 0.6)
-        
+
         for i in range(steps + 1):
             t = i / steps
             # Cubic bezier formula
@@ -205,7 +205,7 @@ class ChessComAutomation:
                 + 3 * (1 - t) * t**2 * control2[1]
                 + t**3 * end[1]
             )
-            
+
             pyautogui.moveTo(int(x), int(y), duration=duration / steps)
             time.sleep(0.001)
 
@@ -218,14 +218,14 @@ class ChessComAutomation:
     def handle_promotion(self, piece: str) -> None:
         """
         Handle pawn promotion UI selection.
-        
+
         Args:
             piece: Piece to promote to ("q", "r", "b", "n")
         """
         # Placeholder: Would click on promotion UI
         # Chess.com typically shows a popup with piece choices
         logger.debug(f"Handling promotion to {piece} (placeholder)")
-        
+
         # In production, this would:
         # 1. Wait for promotion UI to appear
         # 2. Detect piece positions in UI

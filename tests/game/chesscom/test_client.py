@@ -20,7 +20,7 @@ class TestChessComClient:
     def client(self, mock_cv2):
         """Create ChessComClient instance."""
         from nanobot.game.chesscom.client import ChessComClient
-        
+
         return ChessComClient(
             personality="TanyalahD",
             enable_tts=False,
@@ -31,9 +31,9 @@ class TestChessComClient:
     def test_init_default(self, mock_cv2):
         """Test initialization with defaults."""
         from nanobot.game.chesscom.client import ChessComClient
-        
+
         client = ChessComClient()
-        
+
         assert client.personality == "TanyalahD"
         assert client.enable_tts is True
         assert client.human_like_play is True
@@ -42,14 +42,14 @@ class TestChessComClient:
     def test_init_custom(self, mock_cv2):
         """Test initialization with custom settings."""
         from nanobot.game.chesscom.client import ChessComClient
-        
+
         client = ChessComClient(
             personality="Custom",
             enable_tts=False,
             human_like_play=False,
             auto_play=True,
         )
-        
+
         assert client.personality == "Custom"
         assert client.enable_tts is False
         assert client.human_like_play is False
@@ -69,7 +69,7 @@ class TestChessComClient:
     def test_initial_statistics(self, client):
         """Test initial statistics."""
         stats = client.get_statistics()
-        
+
         assert stats["games_played"] == 0
         assert stats["wins"] == 0
         assert stats["losses"] == 0
@@ -81,11 +81,11 @@ class TestChessComClient:
     async def test_process_turn_success(self, client):
         """Test successful turn processing."""
         import numpy as np
-        
+
         # Mock screen capture
         client.screen_capture = MagicMock()
         client.screen_capture.capture_board.return_value = np.zeros((600, 600, 3))
-        
+
         # Mock board recognition
         with patch.object(client.board_recognizer, "recognize_pieces") as mock_rec:
             with patch.object(client.board_recognizer, "to_fen") as mock_fen:
@@ -93,9 +93,9 @@ class TestChessComClient:
                     mock_rec.return_value = [[""]*8 for _ in range(8)]
                     mock_fen.return_value = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
                     mock_orient.return_value = "white"
-                    
+
                     result = await client.process_turn()
-                    
+
                     assert result["success"] is True
                     assert "move" in result
                     assert "commentary" in result
@@ -106,28 +106,29 @@ class TestChessComClient:
     async def test_process_turn_no_screen_capture(self, client):
         """Test turn processing without screen capture."""
         result = await client.process_turn()
-        
+
         assert result["success"] is False
         assert "error" in result
 
     @pytest.mark.asyncio
     async def test_process_turn_with_tts(self, mock_cv2):
         """Test turn processing with TTS enabled."""
-        from nanobot.game.chesscom.client import ChessComClient
         import numpy as np
-        
+
+        from nanobot.game.chesscom.client import ChessComClient
+
         client = ChessComClient(enable_tts=True, auto_play=False)
         client.screen_capture = MagicMock()
         client.screen_capture.capture_board.return_value = np.zeros((600, 600, 3))
         client.tts = AsyncMock()
-        
+
         with patch.object(client.board_recognizer, "recognize_pieces"):
             with patch.object(client.board_recognizer, "to_fen") as mock_fen:
                 with patch.object(client.board_recognizer, "detect_orientation"):
                     mock_fen.return_value = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-                    
+
                     result = await client.process_turn()
-                    
+
                     if result["success"]:
                         # TTS should be called
                         client.tts.speak.assert_called_once()
@@ -135,22 +136,23 @@ class TestChessComClient:
     @pytest.mark.asyncio
     async def test_process_turn_with_auto_play(self, mock_cv2):
         """Test turn processing with auto-play enabled."""
-        from nanobot.game.chesscom.client import ChessComClient
         import numpy as np
-        
+
+        from nanobot.game.chesscom.client import ChessComClient
+
         client = ChessComClient(auto_play=True)
         client.screen_capture = MagicMock()
         client.screen_capture.capture_board.return_value = np.zeros((600, 600, 3))
         client.gui_automation = MagicMock()
         client.gui_automation.execute_move.return_value = True
-        
+
         with patch.object(client.board_recognizer, "recognize_pieces"):
             with patch.object(client.board_recognizer, "to_fen") as mock_fen:
                 with patch.object(client.board_recognizer, "detect_orientation"):
                     mock_fen.return_value = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-                    
+
                     result = await client.process_turn()
-                    
+
                     if result["success"]:
                         # Move should be executed
                         assert result["executed"] is True
@@ -158,10 +160,10 @@ class TestChessComClient:
     def test_pause_and_resume(self, client):
         """Test pause and resume functionality."""
         assert client._paused is False
-        
+
         client.pause()
         assert client._paused is True
-        
+
         client.resume()
         assert client._paused is False
 
@@ -172,9 +174,9 @@ class TestChessComClient:
             {"IAS": 0.8, "CER": 0.9},
             {"IAS": 0.7, "CER": 0.85},
         ]
-        
+
         stats = client.get_statistics()
-        
+
         assert stats["avg_ias"] == pytest.approx(0.75)
         assert stats["avg_cer"] == pytest.approx(0.875)
 
@@ -182,9 +184,9 @@ class TestChessComClient:
         """Test cleanup functionality."""
         client.screen_capture = MagicMock()
         client.tts = MagicMock()
-        
+
         client._cleanup()
-        
+
         client.screen_capture.close.assert_called_once()
         client.tts.stop.assert_called_once()
 
@@ -199,7 +201,7 @@ class TestChessComClient:
             {"width": 1920, "height": 1080},
             {"width": 1920, "height": 1080, "left": 0, "top": 0},
         ]
-        
+
         with patch("nanobot.game.chesscom.screen_capture.mss", mock_mss_module):
             with patch.object(client, "process_turn", side_effect=KeyboardInterrupt):
                 # Should not raise exception
@@ -209,7 +211,7 @@ class TestChessComClient:
         """Test win rate calculation."""
         client.stats["games_played"] = 10
         client.stats["wins"] = 7
-        
+
         stats = client.get_statistics()
-        
+
         assert stats["win_rate"] == 0.7

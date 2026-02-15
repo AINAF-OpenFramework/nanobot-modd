@@ -7,16 +7,16 @@ with Chess.com for autonomous chess play with real-time commentary.
 
 Usage:
     python examples/chesscom_vtuber_demo.py [--no-tts] [--manual]
-    
+
 Options:
     --no-tts    Disable text-to-speech commentary
     --manual    Manual mode: suggest moves but don't execute them
-    
+
 Requirements:
     - Chess.com open in browser with visible board
     - Screen region configured (auto-detects by default)
     - Optional: ElevenLabs API key for high-quality TTS
-    
+
 Controls:
     - Ctrl+C: Pause/stop the game loop
 """
@@ -34,7 +34,7 @@ from nanobot.game.chesscom import ChessComClient
 async def main(enable_tts: bool = True, auto_play: bool = True) -> None:
     """
     Run the Chess.com VTuber demo.
-    
+
     Args:
         enable_tts: Enable text-to-speech commentary
         auto_play: Automatically execute moves (False for manual mode)
@@ -46,7 +46,7 @@ async def main(enable_tts: bool = True, auto_play: bool = True) -> None:
         human_like_play=True,
         auto_play=auto_play,
     )
-    
+
     # Display startup info
     print("=" * 60)
     print("🎮 TanyalahD Chess VTuber - Chess.com Integration")
@@ -56,23 +56,23 @@ async def main(enable_tts: bool = True, auto_play: bool = True) -> None:
     print("🎯 The chess board will be auto-detected")
     print("⏸️  Press Ctrl+C to pause or stop")
     print()
-    
+
     if auto_play:
         print("🤖 AUTO-PLAY MODE: TanyalahD will make moves automatically")
     else:
         print("💭 MANUAL MODE: TanyalahD will suggest moves only")
-    
+
     if enable_tts:
         print("🔊 TTS ENABLED: Commentary will be spoken")
     else:
         print("🔇 TTS DISABLED: Text commentary only")
-    
+
     print()
     print("Starting in 3 seconds...")
     print("=" * 60)
-    
+
     await asyncio.sleep(3)
-    
+
     # Start the game loop
     try:
         await client.start_game_loop()
@@ -103,25 +103,25 @@ def parse_args() -> argparse.Namespace:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
-    
+
     parser.add_argument(
         "--no-tts",
         action="store_true",
         help="Disable text-to-speech commentary",
     )
-    
+
     parser.add_argument(
         "--manual",
         action="store_true",
         help="Manual mode: suggest moves but don't execute them",
     )
-    
+
     return parser.parse_args()
 
 
 if __name__ == "__main__":
     args = parse_args()
-    
+
     asyncio.run(
         main(
             enable_tts=not args.no_tts,

@@ -23,7 +23,7 @@ from nanobot.game.vtuber.vtuber_bridge import VTuberOutput
 class ChessComClient:
     """
     Main Chess.com client with full VTuber integration.
-    
+
     Orchestrates screen capture, board recognition, move generation,
     VTuber commentary, TTS, and GUI automation for autonomous chess play.
     """
@@ -37,7 +37,7 @@ class ChessComClient:
     ):
         """
         Initialize Chess.com client with full VTuber integration.
-        
+
         Args:
             personality: VTuber personality preset
             enable_tts: Enable text-to-speech commentary
@@ -49,26 +49,26 @@ class ChessComClient:
         self.human_like_play = human_like_play
         self.auto_play = auto_play
         self._paused = False
-        
+
         # Initialize components
         self.screen_capture: ChessComScreenCapture | None = None
         self.board_recognizer = BoardRecognizer()
         self.gui_automation: ChessComAutomation | None = None
         self.tts: TTSIntegration | None = None
-        
+
         # Chess engine components
         self.board_manager = BoardStateManager()
         self.move_generator = MoveGenerator()
         self.move_evaluator = MoveEvaluator()
         self.move_executor = MoveExecutor()
-        
+
         # VTuber components
         self.soul_layer = SoulLayerIntegration(personality=personality)
         self.vtuber_output = VTuberOutput(enable_tts=enable_tts)
-        
+
         # Metrics tracking
         self.metrics_tracker = MetricsTracker()
-        
+
         # Game statistics
         self.stats = {
             "games_played": 0,
@@ -77,7 +77,7 @@ class ChessComClient:
             "draws": 0,
             "moves_made": 0,
         }
-        
+
         logger.info(
             f"ChessComClient initialized: personality={personality}, "
             f"tts={enable_tts}, auto_play={auto_play}"
@@ -86,51 +86,51 @@ class ChessComClient:
     async def start_game_loop(self) -> None:
         """
         Start the main game loop for autonomous play.
-        
+
         Continuously monitors the board, generates moves, and executes them
         when it's the player's turn.
         """
         logger.info("Starting Chess.com game loop...")
-        
+
         # Initialize screen capture
         self.screen_capture = ChessComScreenCapture()
-        
+
         # Detect board region
         board_region = self.screen_capture.detect_board_region()
-        
+
         # Initialize GUI automation
         if self.auto_play:
             self.gui_automation = ChessComAutomation(
                 board_region=board_region,
                 human_like=self.human_like_play,
             )
-        
+
         # Initialize TTS if enabled
         if self.enable_tts:
             self.tts = TTSIntegration(provider="local")
-        
+
         try:
             while True:
                 # Check if paused
                 if self._paused:
                     await asyncio.sleep(1.0)
                     continue
-                
+
                 # Check game status
                 status = self.screen_capture.get_game_status()
                 if status != "playing":
                     logger.debug(f"Game status: {status}, waiting...")
                     await asyncio.sleep(2.0)
                     continue
-                
+
                 # Check if it's our turn
                 if not self.screen_capture.is_my_turn():
                     await asyncio.sleep(1.0)
                     continue
-                
+
                 # Process turn
                 result = await self.process_turn()
-                
+
                 if result.get("success"):
                     logger.info(
                         f"Move executed: {result['move']} | "
@@ -139,10 +139,10 @@ class ChessComClient:
                     )
                 else:
                     logger.warning(f"Turn processing failed: {result.get('error')}")
-                
+
                 # Wait before next check
                 await asyncio.sleep(1.0)
-                
+
         except KeyboardInterrupt:
             logger.info("Game loop interrupted by user")
         finally:
@@ -151,7 +151,7 @@ class ChessComClient:
     async def process_turn(self) -> dict[str, Any]:
         """
         Process a single turn.
-        
+
         Steps:
         1. Capture board state
         2. Recognize pieces and convert to FEN
@@ -161,7 +161,7 @@ class ChessComClient:
         6. Speak commentary via TTS
         7. Execute move (if auto_play enabled)
         8. Update metrics
-        
+
         Returns:
             Dict with move, commentary, IAS, CER, and execution status
         """
@@ -169,25 +169,25 @@ class ChessComClient:
             # 1. Capture board
             if self.screen_capture is None:
                 return {"success": False, "error": "Screen capture not initialized"}
-            
+
             board_image = self.screen_capture.capture_board()
-            
+
             # 2. Recognize pieces
             board_state = self.board_recognizer.recognize_pieces(board_image)
             fen = self.board_recognizer.to_fen(board_state)
             orientation = self.board_recognizer.detect_orientation(board_image)
-            
+
             # Load board state
             self.board_manager.load_fen(fen)
-            
+
             # 3. Generate legal moves
             legal_moves = self.move_generator.generate_legal_moves_from_board(
                 self.board_manager.board
             )
-            
+
             if not legal_moves:
                 return {"success": False, "error": "No legal moves available"}
-            
+
             # 4. Evaluate moves
             # Use the score_moves API with board and moves
             # We pass empty move_vectors but provide board and moves for detailed analysis
@@ -202,47 +202,47 @@ class ChessComClient:
                     board=self.board_manager.board,
                     moves=legal_moves,
                 )
-            
+
             # 5. Select best move
             best_move_idx = self.move_executor.select_best_move(move_scores)
             best_move = legal_moves[best_move_idx]
             best_score = move_scores[best_move_idx]
-            
+
             # 6. Compute metrics
             ias, cer = self.metrics_tracker.compute_IAS_CER(
                 move=best_move,
                 scores=move_scores,
                 selected_idx=best_move_idx,
             )
-            
+
             # 7. Generate VTuber commentary
             commentary = self.soul_layer.generate_comment(
                 move=best_move,
                 board=self.board_manager.board,
                 score=best_score,
             )
-            
+
             # 8. Output with VTuber formatting
             output = self.vtuber_output.send_move_and_comment(
                 move=best_move,
                 comment=commentary,
                 score=best_score,
             )
-            
+
             # 9. Speak commentary if TTS enabled
             if self.tts:
                 await self.tts.speak(commentary, block=False)
-            
+
             # 10. Execute move if auto_play enabled
             executed = False
             if self.auto_play and self.gui_automation:
                 executed = self.gui_automation.execute_move(
                     best_move, board_orientation=orientation
                 )
-            
+
             # 11. Update statistics
             self.stats["moves_made"] += 1
-            
+
             return {
                 "success": True,
                 "move": best_move,
@@ -253,7 +253,7 @@ class ChessComClient:
                 "executed": executed,
                 "output": output,
             }
-            
+
         except Exception as e:
             logger.error(f"Error processing turn: {e}", exc_info=True)
             return {"success": False, "error": str(e)}
@@ -271,7 +271,7 @@ class ChessComClient:
     def get_statistics(self) -> dict[str, Any]:
         """
         Get game statistics.
-        
+
         Returns:
             Dict with win rate, IAS/CER averages, and other stats
         """
@@ -279,7 +279,7 @@ class ChessComClient:
         win_rate = (
             self.stats["wins"] / total_games if total_games > 0 else 0.0
         )
-        
+
         # Get IAS/CER averages from metrics tracker
         if self.metrics_tracker.metrics_history:
             avg_ias = sum(
@@ -291,7 +291,7 @@ class ChessComClient:
         else:
             avg_ias = 0.0
             avg_cer = 0.0
-        
+
         return {
             **self.stats,
             "win_rate": win_rate,
