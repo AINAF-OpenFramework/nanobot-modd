@@ -1,0 +1,547 @@
+_meta:
+  source: triune-system.md
+  format_version: '1.0'
+title: Triune Memory System Architecture
+sections:
+- title: Triune Memory System Architecture
+  subsections:
+  - title: Overview
+    content: The Triune Memory System is a dual-format memory architecture that maintains
+      both human-readable Markdown (`.md`) and token-efficient YAML (`.yaml`) representations
+      of configuration and documentation files. This system ensures optimal human
+      comprehension while minimizing LLM token consumption during runtime.
+  - title: Core Principles
+    subsections:
+    - title: 1. **Dual Representation**
+      content: "- **Markdown (`.md`)** - Source of truth for human editing\n  - Rich\
+        \ formatting, explanations, examples\n  - Easy to read and modify\n  - Version\
+        \ control friendly\n- **YAML (`.yaml`)** - Runtime format for LLM consumption\n\
+        \  - Structured, token-efficient\n  - Fast parsing\n  - Reduced context window\
+        \ usage"
+      lists:
+      - type: bullet
+        items:
+        - '**Markdown (`.md`)** - Source of truth for human editing'
+        - Rich formatting, explanations, examples
+        - Easy to read and modify
+        - Version control friendly
+        - '**YAML (`.yaml`)** - Runtime format for LLM consumption'
+        - Structured, token-efficient
+        - Fast parsing
+        - Reduced context window usage
+    - title: 2. **Synchronization**
+      content: '- Bidirectional translation between MD ↔ YAML
+
+        - Automated sync on file changes
+
+        - Integrity verification with checksums
+
+        - Drift detection and auto-repair'
+      lists:
+      - type: bullet
+        items:
+        - Bidirectional translation between MD ↔ YAML
+        - Automated sync on file changes
+        - Integrity verification with checksums
+        - Drift detection and auto-repair
+    - title: 3. **Runtime Preference**
+      content: '- Runtime systems prefer YAML when available
+
+        - Graceful fallback to MD if YAML missing
+
+        - Warnings logged for sync drift'
+      lists:
+      - type: bullet
+        items:
+        - Runtime systems prefer YAML when available
+        - Graceful fallback to MD if YAML missing
+        - Warnings logged for sync drift
+  - title: System Components
+    subsections:
+    - title: Translation Infrastructure
+      content: 'Located in `nanobot/utils/`:'
+      subsections:
+      - title: '`translator.py`'
+        content: 'Core translation engine providing:
+
+          - `parse_md_to_yaml()` - Convert MD to YAML
+
+          - `export_yaml_to_md()` - Convert YAML to MD
+
+          - `sync_directory()` - Sync files in a directory
+
+          - `sync_all()` - Full project sync
+
+          - `load_yaml_or_md()` - Runtime loader with YAML preference'
+      - title: '`md_parser.py`'
+        content: 'Markdown parsing utilities:
+
+          - Extract frontmatter (YAML headers)
+
+          - Parse sections and subsections
+
+          - Extract code blocks and lists
+
+          - Preserve document structure'
+      - title: '`yaml_writer.py`'
+        content: 'YAML serialization:
+
+          - `write_yaml()` - Write structured YAML
+
+          - `yaml_to_markdown()` - Reverse conversion
+
+          - Formatting and style preservation'
+    - title: Integrity Verification System
+      content: 'Located in `nanobot/triune/`:'
+      subsections:
+      - title: '`checksums.py`'
+        content: 'Checksum management:
+
+          - **ChecksumManager** - Thread-safe checksum tracking
+
+          - MD5/SHA256 hash computation
+
+          - Persistent storage in `.triune/checksums.json`
+
+          - Verification of MD-YAML pair integrity'
+      - title: '`verifier.py`'
+        content: 'Sync verification:
+
+          - **TriuneVerifier** - Full repository verification
+
+          - Detect missing YAML files
+
+          - Identify drifted files (MD newer than YAML)
+
+          - Find orphaned YAML files
+
+          - Validate YAML parseability
+
+          - Auto-repair with `--fix` flag'
+    - title: YAML Loaders
+      content: 'Thread-safe singleton loaders for different modules:'
+      subsections:
+      - title: '`nanobot/soul/loader.py` ✅'
+        content: 'Soul configuration (personality, goals, strategies)
+
+          - Thread-safe singleton pattern
+
+          - Cached loading
+
+          - Default config generation'
+      - title: '`nanobot/governance/loader.py`'
+        content: 'Governance policies and rules
+
+          - Policies, rules, constraints
+
+          - Runtime validation'
+      - title: '`nanobot/memory/loader.py`'
+        content: 'Memory configurations and schemas
+
+          - Memory schemas
+
+          - Templates
+
+          - Configuration settings'
+      - title: '`nanobot/latent/loader.py`'
+        content: 'Latent reasoning patterns
+
+          - Reasoning patterns
+
+          - Heuristics
+
+          - Configuration'
+      - title: '`nanobot/game/loader.py`'
+        content: 'Game learning configurations
+
+          - Game configurations
+
+          - Reward models
+
+          - Learning parameters'
+    - title: CLI Tools
+      content: 'Located in `nanobot/cli/`:'
+      subsections:
+      - title: '`triune_commands.py`'
+        content: 'Verification command interface:
+
+
+          ```bash'
+- title: Check sync status
+  content: nanobot triune verify
+- title: Auto-regenerate missing/drifted YAML
+  content: nanobot triune verify --fix
+- title: Detailed report
+  content: nanobot triune verify --report
+- title: Verify specific path
+  content: 'nanobot triune verify --path /path/to/verify
+
+    ```'
+  subsections:
+  - title: Status Output
+    code_blocks:
+    - language: ''
+      content: 'Triune Sync Status:
+
+        ✓ 45 MD files synced
+
+        ✗ 3 MD files missing YAML
+
+        ⚠ 2 YAML files drifted from MD
+
+        ○ 1 orphaned YAML file
+
+
+        Details:
+
+        - Missing YAML: governance/policy.md, memory/cache.md
+
+        - Drifted: latent/reasoning.yaml (MD modified 5min ago)
+
+        - Orphaned: old_config.yaml'
+  - title: Health Monitoring
+    subsections:
+    - title: '`/health` Endpoint Enhancement'
+      content: 'The health endpoint (`nanobot/gateway.py`) includes Triune status:'
+      code_blocks:
+      - language: json
+        content: "{\n  \"status\": \"ok\",\n  \"triune\": {\n    \"sync_status\":\
+          \ \"partial_sync\",\n    \"yaml_validity\": \"valid\",\n    \"loader_status\"\
+          : {\n      \"soul\": \"loaded\",\n      \"governance\": \"not_configured\"\
+          ,\n      \"memory\": \"loaded\",\n      \"latent\": \"not_configured\",\n\
+          \      \"game\": \"not_configured\"\n    },\n    \"stats\": {\n      \"\
+          total_md_files\": 48,\n      \"synced_yaml_files\": 45,\n      \"drifted_files\"\
+          : 2,\n      \"missing_yaml\": 3,\n      \"orphaned_yaml\": 1\n    },\n \
+          \   \"last_verification\": \"2026-02-15T10:30:00Z\"\n  }\n}"
+  - title: Workflow
+    subsections:
+    - title: Initial Setup
+      content: '1. Create `.md` files with documentation/configuration
+
+        2. Run `nanobot triune verify --fix` to generate YAML
+
+        3. Checksums stored in `.triune/checksums.json`'
+      lists:
+      - type: numbered
+        items:
+        - Create `.md` files with documentation/configuration
+        - Run `nanobot triune verify --fix` to generate YAML
+        - Checksums stored in `.triune/checksums.json`
+    - title: Development Workflow
+      content: '1. Edit `.md` files (human-readable format)
+
+        2. Run `nanobot triune verify --fix` to sync YAML
+
+        3. Runtime uses YAML for efficiency
+
+        4. Verification detects any manual YAML edits'
+      lists:
+      - type: numbered
+        items:
+        - Edit `.md` files (human-readable format)
+        - Run `nanobot triune verify --fix` to sync YAML
+        - Runtime uses YAML for efficiency
+        - Verification detects any manual YAML edits
+    - title: Runtime Operation
+      content: '1. Loaders attempt to load `.yaml` first
+
+        2. Fall back to `.md` if YAML missing
+
+        3. Log warnings for drift detection
+
+        4. Periodic verification checks integrity'
+      lists:
+      - type: numbered
+        items:
+        - Loaders attempt to load `.yaml` first
+        - Fall back to `.md` if YAML missing
+        - Log warnings for drift detection
+        - Periodic verification checks integrity
+    - title: CI/CD Integration
+      content: '```bash'
+- title: In CI pipeline
+  content: nanobot triune verify --report
+- title: Fail build if sync issues
+  content: "if [ $? -ne 0 ]; then\n  echo \"Triune sync issues detected\"\n  exit\
+    \ 1\nfi\n```"
+  subsections:
+  - title: File Structure
+    code_blocks:
+    - language: ''
+      content: "nanobot/\n├── triune/                      # Verification system\n\
+        │   ├── __init__.py\n│   ├── checksums.py            # Checksum management\n\
+        │   └── verifier.py             # Sync verification\n├── governance/     \
+        \             # Governance module\n│   ├── __init__.py\n│   └── loader.py\
+        \               # YAML loader\n├── memory/                      # Memory module\n\
+        │   ├── __init__.py\n│   └── loader.py               # YAML loader\n├── latent/\
+        \                      # Latent reasoning\n│   ├── __init__.py\n│   └── loader.py\
+        \               # YAML loader\n├── game/                        # Game learning\n\
+        │   └── loader.py               # YAML loader\n├── soul/                 \
+        \       # Soul configuration\n│   ├── loader.py               # Existing YAML\
+        \ loader\n│   └── schema.py               # Data models\n├── utils/      \
+        \                 # Translation utilities\n│   ├── translator.py         \
+        \  # Core translator\n│   ├── md_parser.py            # MD parsing\n│   └──\
+        \ yaml_writer.py          # YAML writing\n└── cli/\n    ├── commands.py  \
+        \           # Main CLI\n    └── triune_commands.py      # Triune CLI\n\n.triune/\n\
+        └── checksums.json              # Checksum storage\n\nworkspace/\n├── *.md\
+        \                        # Source files\n└── *.yaml                      #\
+        \ Generated mirrors"
+  - title: Design Patterns
+    subsections:
+    - title: Singleton Loaders
+      content: 'All loaders follow the Soul loader pattern:
+
+        - Thread-safe singleton per config path
+
+        - Cached configuration after first load
+
+        - `force_reload` flag for updates
+
+        - Graceful handling of missing files'
+    - title: Checksum Strategy
+      content: '- MD5 for fast verification (default)
+
+        - SHA256 for high-security needs
+
+        - Checksums stored with metadata
+
+        - Last verification timestamp'
+      lists:
+      - type: bullet
+        items:
+        - MD5 for fast verification (default)
+        - SHA256 for high-security needs
+        - Checksums stored with metadata
+        - Last verification timestamp
+    - title: Error Handling
+      content: '- Missing files: Return empty dict, log warning
+
+        - Invalid YAML: Return empty dict, log error
+
+        - Sync drift: Log warning, continue execution
+
+        - Runtime failures: Graceful degradation'
+      lists:
+      - type: bullet
+        items:
+        - 'Missing files: Return empty dict, log warning'
+        - 'Invalid YAML: Return empty dict, log error'
+        - 'Sync drift: Log warning, continue execution'
+        - 'Runtime failures: Graceful degradation'
+  - title: Performance Considerations
+    subsections:
+    - title: Token Efficiency
+      content: '- YAML format ~30-50% fewer tokens than Markdown
+
+        - Reduced context window usage
+
+        - Faster parsing and serialization'
+      lists:
+      - type: bullet
+        items:
+        - YAML format ~30-50% fewer tokens than Markdown
+        - Reduced context window usage
+        - Faster parsing and serialization
+    - title: Caching
+      content: '- Loaders cache after first load
+
+        - Checksums cached in memory
+
+        - `force_reload` available when needed'
+      lists:
+      - type: bullet
+        items:
+        - Loaders cache after first load
+        - Checksums cached in memory
+        - '`force_reload` available when needed'
+    - title: Lazy Loading
+      content: '- Loaders instantiate on first use
+
+        - Configuration loaded on first access
+
+        - Minimal startup overhead'
+      lists:
+      - type: bullet
+        items:
+        - Loaders instantiate on first use
+        - Configuration loaded on first access
+        - Minimal startup overhead
+  - title: Security
+    subsections:
+    - title: Checksum Integrity
+      content: '- Detect unauthorized modifications
+
+        - Verify sync before critical operations
+
+        - Audit trail in checksums.json'
+      lists:
+      - type: bullet
+        items:
+        - Detect unauthorized modifications
+        - Verify sync before critical operations
+        - Audit trail in checksums.json
+    - title: Configuration Validation
+      content: '- YAML schema validation
+
+        - Type checking via Pydantic (Soul)
+
+        - Runtime validation in loaders'
+      lists:
+      - type: bullet
+        items:
+        - YAML schema validation
+        - Type checking via Pydantic (Soul)
+        - Runtime validation in loaders
+  - title: Best Practices
+    subsections:
+    - title: For Developers
+      content: '1. **Always edit .md files**, not .yaml
+
+        2. Run `nanobot triune verify --fix` after changes
+
+        3. Commit both .md and .yaml files
+
+        4. Review checksums.json for audit trail'
+      lists:
+      - type: numbered
+        items:
+        - '**Always edit .md files**, not .yaml'
+        - Run `nanobot triune verify --fix` after changes
+        - Commit both .md and .yaml files
+        - Review checksums.json for audit trail
+    - title: For Operators
+      content: '1. Monitor `/health` endpoint for Triune status
+
+        2. Set up alerts for sync drift
+
+        3. Run verification in CI/CD pipeline
+
+        4. Backup checksums.json with config files'
+      lists:
+      - type: numbered
+        items:
+        - Monitor `/health` endpoint for Triune status
+        - Set up alerts for sync drift
+        - Run verification in CI/CD pipeline
+        - Backup checksums.json with config files
+    - title: For Contributors
+      content: '1. Follow existing loader patterns
+
+        2. Add unit tests for new loaders
+
+        3. Update documentation
+
+        4. Test both .md and .yaml paths'
+      lists:
+      - type: numbered
+        items:
+        - Follow existing loader patterns
+        - Add unit tests for new loaders
+        - Update documentation
+        - Test both .md and .yaml paths
+  - title: Troubleshooting
+    subsections:
+    - title: YAML Files Out of Sync
+      code_blocks:
+      - language: bash
+        content: 'nanobot triune verify --report
+
+          nanobot triune verify --fix'
+    - title: Orphaned YAML Files
+      content: '1. Identify with `nanobot triune verify --report`
+
+        2. Check if corresponding .md was deleted
+
+        3. Remove orphaned .yaml manually'
+      lists:
+      - type: numbered
+        items:
+        - Identify with `nanobot triune verify --report`
+        - Check if corresponding .md was deleted
+        - Remove orphaned .yaml manually
+    - title: Invalid YAML Syntax
+      content: '1. Verify reports invalid files
+
+        2. Regenerate with `--fix` flag
+
+        3. If persists, check .md source'
+      lists:
+      - type: numbered
+        items:
+        - Verify reports invalid files
+        - Regenerate with `--fix` flag
+        - If persists, check .md source
+    - title: Loader Errors
+      content: '1. Check health endpoint for loader status
+
+        2. Verify .yaml file exists and is valid
+
+        3. Check file permissions
+
+        4. Review logs for detailed errors'
+      lists:
+      - type: numbered
+        items:
+        - Check health endpoint for loader status
+        - Verify .yaml file exists and is valid
+        - Check file permissions
+        - Review logs for detailed errors
+  - title: Future Enhancements
+    subsections:
+    - title: Planned Features
+      content: '- [ ] Watch mode for auto-sync on file changes
+
+        - [ ] Compression for large YAML files
+
+        - [ ] Encryption for sensitive configs
+
+        - [ ] Remote sync to object storage
+
+        - [ ] Web UI for verification status'
+      lists:
+      - type: checkbox
+        items:
+        - text: Watch mode for auto-sync on file changes
+          checked: false
+        - text: Compression for large YAML files
+          checked: false
+        - text: Encryption for sensitive configs
+          checked: false
+        - text: Remote sync to object storage
+          checked: false
+        - text: Web UI for verification status
+          checked: false
+    - title: Optimization Opportunities
+      content: '- [ ] Parallel checksum computation
+
+        - [ ] Incremental sync (only changed files)
+
+        - [ ] Background verification task
+
+        - [ ] Cache warming on startup'
+      lists:
+      - type: checkbox
+        items:
+        - text: Parallel checksum computation
+          checked: false
+        - text: Incremental sync (only changed files)
+          checked: false
+        - text: Background verification task
+          checked: false
+        - text: Cache warming on startup
+          checked: false
+  - title: References
+    content: '- [Triune Memory Concept](../TRIUNE_MEMORY.md)
+
+      - [Soul Loader Implementation](../nanobot/soul/loader.py)
+
+      - [Translation Tests](../tests/test_translator.py)
+
+      - [Phase 2 Tests](../tests/test_triune_phase2.py)'
+    lists:
+    - type: bullet
+      items:
+      - '[Triune Memory Concept](../TRIUNE_MEMORY.md)'
+      - '[Soul Loader Implementation](../nanobot/soul/loader.py)'
+      - '[Translation Tests](../tests/test_translator.py)'
+      - '[Phase 2 Tests](../tests/test_triune_phase2.py)'

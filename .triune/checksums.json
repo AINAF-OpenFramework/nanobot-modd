@@ -95,6 +95,14 @@
     "yaml_checksum": "41ef70f81ca4839fa7c101cdff218213",
     "yaml_path": "/home/runner/work/nanobot/nanobot/docs/PRODUCTION_DEPLOYMENT.yaml"
   },
+  "/home/runner/work/nanobot/nanobot/docs/triune-system.md": {
+    "algorithm": "md5",
+    "last_verified": "2026-02-15T13:55:32.462147Z",
+    "md_checksum": "b05dc486a23b6d43e02127db9386d4a1",
+    "md_path": "/home/runner/work/nanobot/nanobot/docs/triune-system.md",
+    "yaml_checksum": "1809709100c192e87c80d537aea19ca4",
+    "yaml_path": "/home/runner/work/nanobot/nanobot/docs/triune-system.yaml"
+  },
   "/home/runner/work/nanobot/nanobot/nanobot/skills/cron/SKILL.md": {
     "algorithm": "md5",
     "last_verified": "2026-02-15T13:50:48.091308Z",
