@@ -4,6 +4,7 @@ import base64
 import json
 import logging
 import mimetypes
+import time
 from pathlib import Path
 from typing import Any
 
@@ -15,8 +16,6 @@ logger = logging.getLogger(__name__)
 # Constants
 MAX_CONTENT_PREVIEW_LENGTH = 200  # Maximum length for content preview in retrieval
 INITIAL_CANDIDATE_MULTIPLIER = 2
-SEMANTIC_WEIGHT = 0.7
-ENTANGLEMENT_WEIGHT = 0.3
 
 
 class MemoryStore:
@@ -288,7 +287,7 @@ class MemoryStore:
     def get_entangled_context(self, query: str, top_k: int = 5) -> list[FractalNode]:
         """
         Retrieve context with hybrid scoring:
-        score = (vector_similarity * 0.7) + (normalized_entanglement * 0.3)
+        score = (semantic * w_s) + (entanglement * w_e) + (importance * w_i)
         """
         initial_results = self._vector_search(query, k=max(top_k * INITIAL_CANDIDATE_MULTIPLIER, 1))
         if not initial_results:
@@ -298,18 +297,26 @@ class MemoryStore:
             node.id: {"node": node, "vec_score": score, "raw_entanglement": 0.0}
             for node, score in initial_results
         }
+        visited: set[str] = set(candidates.keys())
+        queue: list[FractalNode] = [node for node, _ in initial_results]
 
-        for node, vec_score in initial_results:
+        while queue:
+            node = queue.pop(0)
+            base_score = candidates.get(node.id, {}).get("vec_score", 0.0)
             for ent_id, strength in node.entangled_ids.items():
-                if ent_id in candidates:
+                if ent_id in visited:
+                    continue
+                if strength <= 0.5:
                     continue
                 ent_node = self.get_node_by_id(ent_id)
                 if ent_node:
+                    visited.add(ent_id)
                     candidates[ent_id] = {
                         "node": ent_node,
-                        "vec_score": vec_score * strength,
+                        "vec_score": base_score * strength,
                         "raw_entanglement": 0.0,
                     }
+                    queue.append(ent_node)
 
         max_entanglement = 0.0
         for candidate_id, data in candidates.items():
@@ -319,15 +326,35 @@ class MemoryStore:
             data["raw_entanglement"] = incoming_score
             max_entanglement = max(max_entanglement, incoming_score)
 
+        cfg = self.config or {}
+        semantic_weight = float(cfg.get("semantic_weight", 0.7))
+        entanglement_weight = float(cfg.get("entanglement_weight", 0.3))
+        importance_weight = float(cfg.get("importance_weight", 0.0))
+        total_weight = semantic_weight + entanglement_weight + importance_weight
+        if total_weight <= 0:
+            semantic_weight, entanglement_weight, importance_weight = 1.0, 0.0, 0.0
+        else:
+            semantic_weight /= total_weight
+            entanglement_weight /= total_weight
+            importance_weight /= total_weight
+        decay_rate = float(cfg.get("importance_decay_rate", 0.01))
+
         final_scores: list[tuple[FractalNode, float]] = []
         for data in candidates.values():
             normalized_strength = (
                 data["raw_entanglement"] / max_entanglement if max_entanglement > 0 else 0.0
             )
-            final_score = (data["vec_score"] * SEMANTIC_WEIGHT) + (
-                normalized_strength * ENTANGLEMENT_WEIGHT
+            node = data["node"]
+            node_importance = float(getattr(node, "importance", 0.0))
+            node_ts = node.timestamp.timestamp()
+            age_hours = max((time.time() - node_ts) / 3600, 0.0)
+            decayed_importance = node_importance * ((1 - decay_rate) ** age_hours)
+            final_score = (data["vec_score"] * semantic_weight) + (
+                normalized_strength * entanglement_weight
+            ) + (
+                decayed_importance * importance_weight
             )
-            final_scores.append((data["node"], final_score))
+            final_scores.append((node, final_score))
 
         final_scores.sort(key=lambda x: x[1], reverse=True)
         return [node for node, _ in final_scores[:top_k]]

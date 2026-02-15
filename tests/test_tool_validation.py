@@ -1,6 +1,10 @@
 from typing import Any
+from pathlib import Path
+
+import pytest
 
 from nanobot.agent.tools.base import Tool
+from nanobot.agent.tools.filesystem import _resolve_path
 from nanobot.agent.tools.registry import ToolRegistry
 
 
@@ -86,3 +90,26 @@ async def test_registry_returns_validation_error() -> None:
     reg.register(SampleTool())
     result = await reg.execute("sample", {"query": "hi"})
     assert "Invalid parameters" in result
+
+
+def test_sandbox_path_traversal(tmp_path: Path) -> None:
+    allowed_root = tmp_path / "data"
+    allowed_root.mkdir()
+    target = allowed_root / "file.txt"
+    target.write_text("ok", encoding="utf-8")
+
+    assert _resolve_path(str(target), allowed_root) == target.resolve()
+
+    with pytest.raises(PermissionError):
+        _resolve_path(str(allowed_root / "../../etc/passwd"), allowed_root)
+
+
+def test_sandbox_prefix_bypass_blocked(tmp_path: Path) -> None:
+    allowed_root = tmp_path / "data"
+    allowed_root.mkdir()
+    sibling = tmp_path / "data_evil" / "file.txt"
+    sibling.parent.mkdir()
+    sibling.write_text("bad", encoding="utf-8")
+
+    with pytest.raises(PermissionError):
+        _resolve_path(str(sibling), allowed_root)

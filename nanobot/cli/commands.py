@@ -317,6 +317,13 @@ def _get_memory_config(config: "Config") -> dict:
         "clarify_entropy_threshold": config.memory.clarify_entropy_threshold,
         "latent_timeout_seconds": config.memory.latent_timeout_seconds,
         "max_context_nodes": config.memory.max_context_nodes,
+        "semantic_weight": config.memory.semantic_weight,
+        "entanglement_weight": config.memory.entanglement_weight,
+        "importance_weight": config.memory.importance_weight,
+        "latent_max_depth": config.memory.latent_max_depth,
+        "beam_width": config.memory.beam_width,
+        "monte_carlo_samples": config.memory.monte_carlo_samples,
+        "importance_decay_rate": config.memory.importance_decay_rate,
     }
 
 

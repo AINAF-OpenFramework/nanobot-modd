@@ -1,17 +1,29 @@
 """Configuration module for nanobot."""
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from nanobot.config.loader import get_config_path, load_config
-from nanobot.config.schema import Config
+from nanobot.config.schema import Config, MemoryConfig
 
 
 class AgentConfig(BaseSettings):
     """Runtime configuration for latent reasoning."""
 
-    clarify_entropy_threshold: float = 0.8
-    latent_timeout_seconds: int = 10
-    max_context_nodes: int = 5
+    memory: MemoryConfig = Field(default_factory=MemoryConfig)
+    enable_quantum_latent: bool = True
+
+    @property
+    def clarify_entropy_threshold(self) -> float:
+        return self.memory.clarify_entropy_threshold
+
+    @property
+    def latent_timeout_seconds(self) -> int:
+        return self.memory.latent_timeout_seconds
+
+    @property
+    def max_context_nodes(self) -> int:
+        return self.memory.max_context_nodes
 
     model_config = SettingsConfigDict(env_prefix="NANOBOT_")
 
