@@ -11,6 +11,7 @@ from pydantic import ValidationError
 from tenacity import AsyncRetrying, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from nanobot.agent.memory_types import Hypothesis, SuperpositionalState
+from nanobot.middleware.circuit_breaker import CircuitBreaker, CircuitOpenError
 from nanobot.providers.base import LLMProvider
 
 
@@ -28,6 +29,10 @@ class LatentReasoner:
         self.model = model
         self.timeout_seconds = timeout_seconds
         self.memory_config = memory_config or {}
+        self.circuit_breaker = CircuitBreaker(
+            failure_threshold=int(self.memory_config.get("latent_circuit_failure_threshold", 3)),
+            recovery_timeout=int(self.memory_config.get("latent_circuit_recovery_timeout", 60)),
+        )
 
     async def _call_llm_with_backoff(
         self, system_prompt: str, prompt: str, temperature: float = 0.1
@@ -59,11 +64,24 @@ class LatentReasoner:
         return ""
 
     async def reason(self, user_message: str, context_summary: str) -> SuperpositionalState:
-        fallback_state = SuperpositionalState(
-            hypotheses=[],
-            entropy=0.0,
-            strategic_direction="Proceed with standard processing due to reasoning timeout/error.",
-        )
+        fallback_state = self._fallback_state()
+        try:
+            return await self.circuit_breaker.call(
+                self._reason_internal,
+                user_message=user_message,
+                context_summary=context_summary,
+            )
+        except CircuitOpenError:
+            return SuperpositionalState(
+                hypotheses=[],
+                entropy=0.0,
+                strategic_direction="Circuit open - standard processing",
+            )
+        except Exception:
+            return fallback_state
+
+    async def _reason_internal(self, user_message: str, context_summary: str) -> SuperpositionalState:
+        fallback_state = self._fallback_state()
 
         system_prompt = (
             "You are the subconscious reasoning engine of an AI agent. "
@@ -126,17 +144,25 @@ class LatentReasoner:
                 or "Proceed with standard processing.",
             )
         except (asyncio.TimeoutError, JSONDecodeError, ValidationError) as exc:
-            logger.debug(f"Latent reasoning fallback triggered: {exc}")
-            return fallback_state
+            logger.debug(f"Latent reasoning error, propagating exception: {exc}")
+            raise
         except Exception as exc:
             logger.warning(f"Unexpected latent reasoning error: {exc}")
-            return fallback_state
+            raise
 
     async def _generate_initial_hypotheses(
         self, system_prompt: str, prompt: str
     ) -> list[Hypothesis]:
         payload = await self._call_llm_with_backoff(system_prompt, prompt)
         return self._parse_hypotheses(payload)
+
+    @staticmethod
+    def _fallback_state() -> SuperpositionalState:
+        return SuperpositionalState(
+            hypotheses=[],
+            entropy=0.0,
+            strategic_direction="Proceed with standard processing due to reasoning timeout/error.",
+        )
 
     def _parse_hypotheses(self, payload: str) -> list[Hypothesis]:
         if payload.startswith("```"):

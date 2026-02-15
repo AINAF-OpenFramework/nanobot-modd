@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import time
 from pathlib import Path
 from typing import Any
 
@@ -21,8 +22,17 @@ from nanobot.agent.tools.web import WebFetchTool, WebSearchTool
 from nanobot.bus.events import InboundMessage, OutboundMessage
 from nanobot.bus.queue import MessageBus
 from nanobot.config import settings
+from nanobot.middleware.rate_limiter import RateLimitConfig, RateLimiter
 from nanobot.providers.base import LLMProvider
 from nanobot.session.manager import SessionManager
+from nanobot.telemetry.exporter import MetricsExporter
+from nanobot.telemetry.metrics import (
+    active_sessions,
+    latent_reasoning_duration,
+    memory_ops_count,
+    memory_retrieval_duration,
+    tool_execution_count,
+)
 
 
 class AgentLoop:
@@ -52,6 +62,8 @@ class AgentLoop:
         restrict_to_workspace: bool = False,
         session_manager: SessionManager | None = None,
         memory_config: dict[str, Any] | None = None,
+        rate_limit_config: dict[str, Any] | None = None,
+        telemetry_config: dict[str, Any] | None = None,
     ):
         from nanobot.config.schema import ExecToolConfig
         self.bus = bus
@@ -96,6 +108,25 @@ class AgentLoop:
         )
         
         self._running = False
+        # consolidation_queue_size bounds background memory-consolidation backlog.
+        self._consolidation_queue: asyncio.Queue = asyncio.Queue(
+            maxsize=int(self.memory_config.get("consolidation_queue_size", 128))
+        )
+        self._consolidation_task: asyncio.Task | None = None
+        rate_limit_config = rate_limit_config or {}
+        self.rate_limiter = RateLimiter(
+            RateLimitConfig(
+                max_calls=int(rate_limit_config.get("max_calls", 10)),
+                window_seconds=int(rate_limit_config.get("window_seconds", 60)),
+                enabled=bool(rate_limit_config.get("enabled", True)),
+            )
+        )
+        telemetry_config = telemetry_config or {}
+        self.metrics_exporter = MetricsExporter(
+            port=int(telemetry_config.get("port", 9090)),
+            enabled=bool(telemetry_config.get("enabled", True)),
+        )
+        self._telemetry_started = False
         self._register_default_tools()
     
     def _register_default_tools(self) -> None:
@@ -133,6 +164,14 @@ class AgentLoop:
     async def run(self) -> None:
         """Run the agent loop, processing messages from the bus."""
         self._running = True
+        if not self._telemetry_started:
+            try:
+                self.metrics_exporter.start()
+                self._telemetry_started = True
+            except OSError as exc:
+                logger.warning(f"Metrics exporter failed to start: {exc}")
+        if self._consolidation_task is None or self._consolidation_task.done():
+            self._consolidation_task = asyncio.create_task(self._consolidation_worker())
         logger.info("Agent loop started")
         
         while self._running:
@@ -162,6 +201,8 @@ class AgentLoop:
     def stop(self) -> None:
         """Stop the agent loop."""
         self._running = False
+        if self._consolidation_task and not self._consolidation_task.done():
+            self._consolidation_task.cancel()
         logger.info("Agent loop stopping")
     
     async def _process_message(self, msg: InboundMessage, session_key: str | None = None) -> OutboundMessage | None:
@@ -182,6 +223,14 @@ class AgentLoop:
         
         preview = msg.content[:80] + "..." if len(msg.content) > 80 else msg.content
         logger.info(f"Processing message from {msg.channel}:{msg.sender_id}: {preview}")
+        rate_limit_key = f"{msg.channel}:{msg.chat_id}"
+        if not await self.rate_limiter.is_allowed(rate_limit_key):
+            return OutboundMessage(
+                channel=msg.channel,
+                chat_id=msg.chat_id,
+                content="⚠️ Rate limit exceeded. Please wait.",
+                metadata=msg.metadata or {},
+            )
         
         # Get or create session
         key = session_key or msg.session_key
@@ -201,7 +250,13 @@ class AgentLoop:
         
         # Consolidate memory before processing if session is too large
         if len(session.messages) > self.memory_window:
-            await self._consolidate_memory(session)
+            if self._running:
+                try:
+                    self._consolidation_queue.put_nowait(session)
+                except asyncio.QueueFull:
+                    logger.warning("Memory consolidation queue is full; skipping enqueue")
+            else:
+                await self._consolidate_memory(session)
         
         # Update tool contexts
         message_tool = self.tools.get("message")
@@ -216,14 +271,13 @@ class AgentLoop:
         if isinstance(cron_tool, CronTool):
             cron_tool.set_context(msg.channel, msg.chat_id)
 
-        latent_nodes = self.context.memory.get_entangled_context(
-            msg.content, top_k=self.max_context_nodes
-        )
+        retrieval_start = time.time()
+        latent_nodes = self.context.memory.get_entangled_context(msg.content, top_k=self.max_context_nodes)
+        memory_retrieval_duration.observe(time.time() - retrieval_start)
         latent_context = self.context.memory._format_nodes(latent_nodes)
-        latent_state = await self.latent_engine.reason(
-            user_message=msg.content,
-            context_summary=latent_context,
-        )
+        latent_start = time.time()
+        latent_state = await self.latent_engine.reason(user_message=msg.content, context_summary=latent_context)
+        latent_reasoning_duration.observe(time.time() - latent_start)
         should_clarify = latent_state.entropy > self.clarify_entropy_threshold
         if should_clarify:
             if len(latent_state.hypotheses) >= 2:
@@ -256,6 +310,7 @@ class AgentLoop:
         iteration = 0
         final_content = None
         tools_used: list[str] = []
+        active_sessions.set(len(self.sessions._cache))
         
         while iteration < self.max_iterations:
             iteration += 1
@@ -292,7 +347,12 @@ class AgentLoop:
                     tools_used.append(tool_call.name)
                     args_str = json.dumps(tool_call.arguments, ensure_ascii=False)
                     logger.info(f"Tool call: {tool_call.name}({args_str[:200]})")
-                    result = await self.tools.execute(tool_call.name, tool_call.arguments)
+                    try:
+                        result = await self.tools.execute(tool_call.name, tool_call.arguments)
+                        tool_execution_count.labels(tool_name=tool_call.name, status="success").inc()
+                    except Exception:
+                        tool_execution_count.labels(tool_name=tool_call.name, status="error").inc()
+                        raise
                     messages = self.context.add_tool_result(
                         messages, tool_call.id, tool_call.name, result
                     )
@@ -348,6 +408,12 @@ class AgentLoop:
             # Fallback
             origin_channel = "cli"
             origin_chat_id = msg.chat_id
+        if not await self.rate_limiter.is_allowed(f"{origin_channel}:{origin_chat_id}"):
+            return OutboundMessage(
+                channel=origin_channel,
+                chat_id=origin_chat_id,
+                content="⚠️ Rate limit exceeded. Please wait.",
+            )
         
         # Use the origin session for context
         session_key = f"{origin_channel}:{origin_chat_id}"
@@ -408,7 +474,12 @@ class AgentLoop:
                 for tool_call in response.tool_calls:
                     args_str = json.dumps(tool_call.arguments, ensure_ascii=False)
                     logger.info(f"Tool call: {tool_call.name}({args_str[:200]})")
-                    result = await self.tools.execute(tool_call.name, tool_call.arguments)
+                    try:
+                        result = await self.tools.execute(tool_call.name, tool_call.arguments)
+                        tool_execution_count.labels(tool_name=tool_call.name, status="success").inc()
+                    except Exception:
+                        tool_execution_count.labels(tool_name=tool_call.name, status="error").inc()
+                        raise
                     messages = self.context.add_tool_result(
                         messages, tool_call.id, tool_call.name, result
                     )
@@ -446,6 +517,7 @@ class AgentLoop:
         if not old_messages:
             return
         logger.info(f"Memory consolidation started: {len(session.messages)} messages, archiving {len(old_messages)}, keeping {keep_count}")
+        memory_ops_count.labels(operation="consolidate", status="started").inc()
 
         # Format messages for LLM (include tool names when available)
         lines = []
@@ -493,8 +565,21 @@ Respond with ONLY valid JSON, no markdown fences."""
             session.messages = session.messages[-keep_count:] if keep_count else []
             self.sessions.save(session)
             logger.info(f"Memory consolidation done, session trimmed to {len(session.messages)} messages")
+            memory_ops_count.labels(operation="consolidate", status="success").inc()
         except Exception as e:
             logger.error(f"Memory consolidation failed: {e}")
+            memory_ops_count.labels(operation="consolidate", status="error").inc()
+
+    async def _consolidation_worker(self) -> None:
+        """Background worker for non-blocking memory consolidation."""
+        while self._running:
+            try:
+                session = await asyncio.wait_for(self._consolidation_queue.get(), timeout=1.0)
+            except asyncio.CancelledError:
+                break
+            except asyncio.TimeoutError:
+                continue
+            await self._consolidate_memory(session)
     
     async def _trigger_reflection(
         self,

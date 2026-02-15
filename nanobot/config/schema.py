@@ -200,6 +200,12 @@ class GatewayConfig(BaseModel):
     port: int = 18790
 
 
+class TelemetryConfig(BaseModel):
+    """Telemetry exporter configuration."""
+    enabled: bool = True
+    port: int = 9090
+
+
 class WebSearchConfig(BaseModel):
     """Web search tool configuration."""
     api_key: str = ""  # Brave Search API key
@@ -266,7 +272,12 @@ class Config(BaseSettings):
     gateway: GatewayConfig = Field(default_factory=GatewayConfig)
     tools: ToolsConfig = Field(default_factory=ToolsConfig)
     memory: MemoryConfig = Field(default_factory=MemoryConfig)
+    telemetry: TelemetryConfig = Field(default_factory=TelemetryConfig)
     enable_quantum_latent: bool = True
+    rate_limit_enabled: bool = True
+    rate_limit_max_calls: int = 10
+    rate_limit_window_seconds: int = 60
+    use_keyring: bool = True
     
     @property
     def workspace_path(self) -> Path:
