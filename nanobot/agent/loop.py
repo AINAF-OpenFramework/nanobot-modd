@@ -81,6 +81,7 @@ class AgentLoop:
             provider=self.provider,
             model=self.model,
             timeout_seconds=latent_timeout_seconds,
+            memory_config=self.memory_config,
         )
         self.sessions = session_manager or SessionManager(workspace)
         self.tools = ToolRegistry()

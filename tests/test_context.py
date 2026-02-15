@@ -1,11 +1,15 @@
 """Tests for context builder."""
 
 import tempfile
+from unittest.mock import AsyncMock
 from pathlib import Path
 
+import pytest
 from nanobot.agent.context import ContextBuilder
+from nanobot.agent.latent import LatentReasoner
 from nanobot.agent.memory import MemoryStore
 from nanobot.agent.memory_types import FractalNode, SuperpositionalState
+from nanobot.providers.base import LLMResponse
 
 
 def test_cognitive_directive_in_system_prompt():
@@ -105,3 +109,58 @@ def test_memory_normalization_logic():
         ranked = memory.get_entangled_context("alpha", top_k=2)
         assert ranked
         assert ranked[0].id == node_a.id
+
+
+def test_entanglement_cycle_detection():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        memory = MemoryStore(Path(tmpdir))
+        node_a = memory.save_fractal_node(content="A", tags=["alpha"], summary="alpha")
+        node_b = memory.save_fractal_node(content="B", tags=["beta"], summary="beta")
+
+        node_a.entangled_ids[node_b.id] = 0.9
+        node_b.entangled_ids[node_a.id] = 0.9
+        memory._update_node(node_a)
+        memory._update_node(node_b)
+
+        context = memory.get_entangled_context(query="alpha", top_k=5)
+        ids = [node.id for node in context]
+
+        assert node_a.id in ids
+        assert node_b.id in ids
+        assert len(ids) == len(set(ids))
+
+
+@pytest.mark.asyncio
+async def test_latent_reasoning_pipeline():
+    mock_provider = AsyncMock()
+    mock_provider.chat.return_value = LLMResponse(
+        content='{"hypotheses":[{"intent":"search","confidence":0.9,"reasoning":"direct lookup"}]}'
+    )
+
+    reasoner = LatentReasoner(
+        provider=mock_provider,
+        model="test-model",
+        memory_config={"clarify_entropy_threshold": 0.5, "latent_max_depth": 1, "beam_width": 3},
+    )
+    state = await reasoner.reason("Find weather in Tokyo", context_summary="")
+
+    assert state.hypotheses[0].intent == "search"
+    assert state.hypotheses[0].confidence == 0.9
+    assert state.entropy == 0.0
+    assert mock_provider.chat.call_count >= 1
+
+
+@pytest.mark.asyncio
+async def test_latent_reasoning_retries_transient_errors():
+    mock_provider = AsyncMock()
+    mock_provider.chat.side_effect = [
+        ConnectionError("transient failure"),
+        ConnectionError("transient failure"),
+        LLMResponse(content='{"hypotheses":[{"intent":"search","confidence":0.8}]}'),
+    ]
+
+    reasoner = LatentReasoner(provider=mock_provider, model="test-model")
+    state = await reasoner.reason("retry please", context_summary="")
+
+    assert state.hypotheses
+    assert mock_provider.chat.call_count == 3

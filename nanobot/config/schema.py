@@ -245,6 +245,13 @@ class MemoryConfig(BaseModel):
     clarify_entropy_threshold: float = 0.8
     latent_timeout_seconds: int = 10
     max_context_nodes: int = 5
+    semantic_weight: float = 0.7  # Similarity contribution in hybrid retrieval score
+    entanglement_weight: float = 0.3  # Graph-link contribution in hybrid retrieval score
+    importance_weight: float = 0.0  # Time-decayed importance contribution (off by default)
+    latent_max_depth: int = 1
+    beam_width: int = 3
+    monte_carlo_samples: int = 0
+    importance_decay_rate: float = 0.01
 
 
 class Config(BaseSettings):
@@ -255,6 +262,7 @@ class Config(BaseSettings):
     gateway: GatewayConfig = Field(default_factory=GatewayConfig)
     tools: ToolsConfig = Field(default_factory=ToolsConfig)
     memory: MemoryConfig = Field(default_factory=MemoryConfig)
+    enable_quantum_latent: bool = True
     
     @property
     def workspace_path(self) -> Path:
