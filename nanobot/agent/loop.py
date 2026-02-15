@@ -46,7 +46,7 @@ class AgentLoop:
     4. Executes tool calls
     5. Sends responses back
     """
-    
+
     def __init__(
         self,
         bus: MessageBus,
@@ -87,7 +87,7 @@ class AgentLoop:
         latent_timeout_seconds = int(
             self.memory_config.get("latent_timeout_seconds", settings.latent_timeout_seconds)
         )
-        
+
         self.context = ContextBuilder(workspace, memory_config=memory_config)
         self.latent_engine = LatentReasoner(
             provider=self.provider,
@@ -106,7 +106,7 @@ class AgentLoop:
             exec_config=self.exec_config,
             restrict_to_workspace=restrict_to_workspace,
         )
-        
+
         self._running = False
         # consolidation_queue_size bounds background memory-consolidation backlog.
         self._consolidation_queue: asyncio.Queue = asyncio.Queue(
@@ -128,7 +128,7 @@ class AgentLoop:
         )
         self._telemetry_started = False
         self._register_default_tools()
-        
+
         # Initialize MCP integration
         self.mcp_registry = None
         self._mcp_configs = None
@@ -146,7 +146,7 @@ class AgentLoop:
                         logger.info(f"MCP integration initialized with {len(self._mcp_configs)} servers")
                 except Exception as e:
                     logger.warning(f"MCP initialization failed: {e}")
-    
+
     def _register_default_tools(self) -> None:
         """Register the default set of tools."""
         # File tools (restrict to workspace if configured)
@@ -155,30 +155,30 @@ class AgentLoop:
         self.tools.register(WriteFileTool(allowed_dir=allowed_dir))
         self.tools.register(EditFileTool(allowed_dir=allowed_dir))
         self.tools.register(ListDirTool(allowed_dir=allowed_dir))
-        
+
         # Shell tool
         self.tools.register(ExecTool(
             working_dir=str(self.workspace),
             timeout=self.exec_config.timeout,
             restrict_to_workspace=self.restrict_to_workspace,
         ))
-        
+
         # Web tools
         self.tools.register(WebSearchTool(api_key=self.brave_api_key))
         self.tools.register(WebFetchTool())
-        
+
         # Message tool
         message_tool = MessageTool(send_callback=self.bus.publish_outbound)
         self.tools.register(message_tool)
-        
+
         # Spawn tool (for subagents)
         spawn_tool = SpawnTool(manager=self.subagents)
         self.tools.register(spawn_tool)
-        
+
         # Cron tool (for scheduling)
         if self.cron_service:
             self.tools.register(CronTool(self.cron_service))
-    
+
     async def run(self) -> None:
         """Run the agent loop, processing messages from the bus."""
         self._running = True
@@ -190,7 +190,7 @@ class AgentLoop:
                 logger.warning(f"Metrics exporter failed to start: {exc}")
         if self._consolidation_task is None or self._consolidation_task.done():
             self._consolidation_task = asyncio.create_task(self._consolidation_worker())
-        
+
         # Connect MCP clients
         if self.mcp_registry and self._mcp_configs:
             for config in self._mcp_configs:
@@ -198,9 +198,9 @@ class AgentLoop:
                     await self.mcp_registry.add_client(config)
                 except Exception as e:
                     logger.warning(f"Failed to connect MCP server '{config.name}': {e}")
-        
+
         logger.info("Agent loop started")
-        
+
         while self._running:
             try:
                 # Wait for next message
@@ -208,7 +208,7 @@ class AgentLoop:
                     self.bus.consume_inbound(),
                     timeout=1.0
                 )
-                
+
                 # Process it
                 try:
                     response = await self._process_message(msg)
@@ -224,21 +224,21 @@ class AgentLoop:
                     ))
             except asyncio.TimeoutError:
                 continue
-        
+
         # Cleanup: Disconnect MCP clients
         if self.mcp_registry:
             try:
                 await self.mcp_registry.disconnect_all()
             except Exception as e:
                 logger.warning(f"Error disconnecting MCP clients: {e}")
-    
+
     def stop(self) -> None:
         """Stop the agent loop."""
         self._running = False
         if self._consolidation_task and not self._consolidation_task.done():
             self._consolidation_task.cancel()
         logger.info("Agent loop stopping")
-    
+
     async def _process_message(self, msg: InboundMessage, session_key: str | None = None) -> OutboundMessage | None:
         """
         Process a single inbound message.
@@ -254,7 +254,7 @@ class AgentLoop:
         # The chat_id contains the original "channel:chat_id" to route back to
         if msg.channel == "system":
             return await self._process_system_message(msg)
-        
+
         preview = msg.content[:80] + "..." if len(msg.content) > 80 else msg.content
         logger.info(f"Processing message from {msg.channel}:{msg.sender_id}: {preview}")
         rate_limit_key = f"{msg.channel}:{msg.chat_id}"
@@ -265,11 +265,11 @@ class AgentLoop:
                 content="⚠️ Rate limit exceeded. Please wait.",
                 metadata=msg.metadata or {},
             )
-        
+
         # Get or create session
         key = session_key or msg.session_key
         session = self.sessions.get_or_create(key)
-        
+
         # Handle slash commands
         cmd = msg.content.strip().lower()
         if cmd == "/new":
@@ -281,7 +281,7 @@ class AgentLoop:
         if cmd == "/help":
             return OutboundMessage(channel=msg.channel, chat_id=msg.chat_id,
                                   content="🐈 nanobot commands:\n/new — Start a new conversation\n/help — Show available commands")
-        
+
         # Consolidate memory before processing if session is too large
         if len(session.messages) > self.memory_window:
             if self._running:
@@ -291,16 +291,16 @@ class AgentLoop:
                     logger.warning("Memory consolidation queue is full; skipping enqueue")
             else:
                 await self._consolidate_memory(session)
-        
+
         # Update tool contexts
         message_tool = self.tools.get("message")
         if isinstance(message_tool, MessageTool):
             message_tool.set_context(msg.channel, msg.chat_id)
-        
+
         spawn_tool = self.tools.get("spawn")
         if isinstance(spawn_tool, SpawnTool):
             spawn_tool.set_context(msg.channel, msg.chat_id)
-        
+
         cron_tool = self.tools.get("cron")
         if isinstance(cron_tool, CronTool):
             cron_tool.set_context(msg.channel, msg.chat_id)
@@ -329,7 +329,7 @@ class AgentLoop:
                 ),
                 metadata=msg.metadata or {},
             )
-        
+
         # Build initial messages (use get_history for LLM-formatted messages)
         messages = self.context.build_messages(
             history=session.get_history(),
@@ -339,16 +339,16 @@ class AgentLoop:
             chat_id=msg.chat_id,
             latent_state=latent_state,
         )
-        
+
         # Agent loop
         iteration = 0
         final_content = None
         tools_used: list[str] = []
         active_sessions.set(len(self.sessions._cache))
-        
+
         while iteration < self.max_iterations:
             iteration += 1
-            
+
             # Call LLM
             response = await self.provider.chat(
                 messages=messages,
@@ -356,7 +356,7 @@ class AgentLoop:
                 model=self.model,
                 temperature=self.temperature
             )
-            
+
             # Handle tool calls
             if response.has_tool_calls:
                 # Add assistant message with tool calls
@@ -375,7 +375,7 @@ class AgentLoop:
                     messages, response.content, tool_call_dicts,
                     reasoning_content=response.reasoning_content,
                 )
-                
+
                 # Execute tools
                 for tool_call in response.tool_calls:
                     tools_used.append(tool_call.name)
@@ -396,34 +396,34 @@ class AgentLoop:
                 # No tool calls, we're done
                 final_content = response.content
                 break
-        
+
         if final_content is None:
             if iteration >= self.max_iterations:
                 final_content = f"Reached {self.max_iterations} iterations without completion."
             else:
                 final_content = "I've completed processing but have no response to give."
-        
+
         # Log response preview
         preview = final_content[:120] + "..." if len(final_content) > 120 else final_content
         logger.info(f"Response to {msg.channel}:{msg.sender_id}: {preview}")
-        
+
         # Save to session (include tool names so consolidation sees what happened)
         session.add_message("user", msg.content)
         session.add_message("assistant", final_content,
                             tools_used=tools_used if tools_used else None)
         self.sessions.save(session)
-        
+
         # --- NEW: Fractal Memory Reflection Hook ---
         # Trigger reflection if significant tools were used or task completed
         await self._trigger_reflection(msg.content, final_content, tools_used)
-        
+
         return OutboundMessage(
             channel=msg.channel,
             chat_id=msg.chat_id,
             content=final_content,
             metadata=msg.metadata or {},  # Pass through for channel-specific needs (e.g. Slack thread_ts)
         )
-    
+
     async def _process_system_message(self, msg: InboundMessage) -> OutboundMessage | None:
         """
         Process a system message (e.g., subagent announce).
@@ -432,7 +432,7 @@ class AgentLoop:
         the response back to the correct destination.
         """
         logger.info(f"Processing system message from {msg.sender_id}")
-        
+
         # Parse origin from chat_id (format: "channel:chat_id")
         if ":" in msg.chat_id:
             parts = msg.chat_id.split(":", 1)
@@ -448,24 +448,24 @@ class AgentLoop:
                 chat_id=origin_chat_id,
                 content="⚠️ Rate limit exceeded. Please wait.",
             )
-        
+
         # Use the origin session for context
         session_key = f"{origin_channel}:{origin_chat_id}"
         session = self.sessions.get_or_create(session_key)
-        
+
         # Update tool contexts
         message_tool = self.tools.get("message")
         if isinstance(message_tool, MessageTool):
             message_tool.set_context(origin_channel, origin_chat_id)
-        
+
         spawn_tool = self.tools.get("spawn")
         if isinstance(spawn_tool, SpawnTool):
             spawn_tool.set_context(origin_channel, origin_chat_id)
-        
+
         cron_tool = self.tools.get("cron")
         if isinstance(cron_tool, CronTool):
             cron_tool.set_context(origin_channel, origin_chat_id)
-        
+
         # Build messages with the announce content
         messages = self.context.build_messages(
             history=session.get_history(),
@@ -473,21 +473,21 @@ class AgentLoop:
             channel=origin_channel,
             chat_id=origin_chat_id,
         )
-        
+
         # Agent loop (limited for announce handling)
         iteration = 0
         final_content = None
-        
+
         while iteration < self.max_iterations:
             iteration += 1
-            
+
             response = await self.provider.chat(
                 messages=messages,
                 tools=self.tools.get_definitions(),
                 model=self.model,
                 temperature=self.temperature
             )
-            
+
             if response.has_tool_calls:
                 tool_call_dicts = [
                     {
@@ -504,7 +504,7 @@ class AgentLoop:
                     messages, response.content, tool_call_dicts,
                     reasoning_content=response.reasoning_content,
                 )
-                
+
                 for tool_call in response.tool_calls:
                     args_str = json.dumps(tool_call.arguments, ensure_ascii=False)
                     logger.info(f"Tool call: {tool_call.name}({args_str[:200]})")
@@ -522,21 +522,21 @@ class AgentLoop:
             else:
                 final_content = response.content
                 break
-        
+
         if final_content is None:
             final_content = "Background task completed."
-        
+
         # Save to session (mark as system message in history)
         session.add_message("user", f"[System: {msg.sender_id}] {msg.content}")
         session.add_message("assistant", final_content)
         self.sessions.save(session)
-        
+
         return OutboundMessage(
             channel=origin_channel,
             chat_id=origin_chat_id,
             content=final_content
         )
-    
+
     async def _consolidate_memory(self, session, archive_all: bool = False) -> None:
         """Consolidate old messages into MEMORY.md + HISTORY.md, then trim session."""
         if not session.messages:
@@ -614,7 +614,7 @@ Respond with ONLY valid JSON, no markdown fences."""
             except asyncio.TimeoutError:
                 continue
             await self._consolidate_memory(session)
-    
+
     async def _trigger_reflection(
         self,
         user_message: str,
@@ -637,45 +637,45 @@ Respond with ONLY valid JSON, no markdown fences."""
         # Keywords that trigger memory capture
         memory_keywords = ["remember", "important", "learned", "note", "save this"]
         should_remember = any(kw in user_message.lower() for kw in memory_keywords)
-        
+
         # Significant tools that warrant memory capture
         significant_tools = ["write_file", "exec", "spawn"]
         used_significant_tools = any(tool in tools_used for tool in significant_tools)
-        
+
         # Only trigger reflection if there's something worth remembering
         if not (should_remember or used_significant_tools):
             return
-        
+
         try:
             memory = MemoryStore(self.workspace)
-            
+
             # Extract tags from user message (simple keyword extraction)
             words = user_message.lower().split()
             tags = [w.strip(".,!?;:") for w in words if len(w) > 4][:5]
-            
+
             # Create a summary
             summary = user_message[:100] + ("..." if len(user_message) > 100 else "")
-            
+
             # Determine content based on context
             if should_remember:
                 content = f"User request: {user_message}\nAgent response: {assistant_response[:200]}"
             else:
                 content = f"Task completed using {', '.join(tools_used)}: {summary}"
-            
+
             # Save fractal node
             node = memory.save_fractal_node(
                 content=content,
                 tags=tags,
                 summary=summary
             )
-            
+
             # Update ALS with reflection
             memory.update_als(
                 reflection=f"Completed interaction involving {', '.join(tools_used) if tools_used else 'conversation'}"
             )
-            
+
             logger.info(f"Reflection captured: node {node.id}")
-            
+
         except Exception as e:
             logger.warning(f"Reflection failed: {e}")
 
@@ -704,6 +704,6 @@ Respond with ONLY valid JSON, no markdown fences."""
             chat_id=chat_id,
             content=content
         )
-        
+
         response = await self._process_message(msg, session_key=session_key)
         return response.content if response else ""

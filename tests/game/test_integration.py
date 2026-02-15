@@ -7,11 +7,10 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
-import numpy as np
 import pytest
 
 from nanobot.agent.memory_types import Hypothesis, SuperpositionalState
-from nanobot.game.environment import ActionResult, APIGameAdapter, GameState
+from nanobot.game.environment import APIGameAdapter, GameState
 from nanobot.game.health import (
     clear_all_controllers,
     extend_health_payload,
@@ -503,7 +502,6 @@ class TestSoulIntegration:
         """Test full game loop integrating soul, reasoning, and memory."""
         from unittest.mock import AsyncMock, patch
 
-        from nanobot.agent.memory_types import Hypothesis, SuperpositionalState
         from nanobot.game.loop import AutonomousGameLoop, GameLoopConfig
 
         mock_provider = AsyncMock()
@@ -546,7 +544,6 @@ class TestSoulIntegration:
         from unittest.mock import AsyncMock
 
         from nanobot.agent.latent import LatentReasoner
-        from nanobot.agent.memory_types import SuperpositionalState
 
         provider = AsyncMock()
         provider.chat = AsyncMock(return_value={

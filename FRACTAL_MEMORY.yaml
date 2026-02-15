@@ -1,0 +1,380 @@
+_meta:
+  source: FRACTAL_MEMORY.md
+  format_version: '1.0'
+title: Fractal Memory and Active Learning State (ALS)
+sections:
+- title: Fractal Memory and Active Learning State (ALS)
+  content: This document describes the upgraded memory system for Nanobot, which implements
+    Fractal Memory architecture with Active Learning State and context-engineered
+    workflows.
+  subsections:
+  - title: Overview
+    content: 'The new memory system extends Nanobot''s capabilities with:
+
+
+      1. **Fractal Memory Nodes**: Hierarchical knowledge storage with lesson archives
+
+      2. **Active Learning State (ALS)**: Tracks the agent''s learning evolution and
+      focus
+
+      3. **Token-Efficient Retrieval**: Top-K search for relevant memories
+
+      4. **6-Block Context Structure**: Structured prompt engineering for better LLM
+      performance
+
+      5. **Backward Compatibility**: Maintains support for legacy MEMORY.md and HISTORY.md'
+    lists:
+    - type: numbered
+      items:
+      - '**Fractal Memory Nodes**: Hierarchical knowledge storage with lesson archives'
+      - '**Active Learning State (ALS)**: Tracks the agent''s learning evolution and
+        focus'
+      - '**Token-Efficient Retrieval**: Top-K search for relevant memories'
+      - '**6-Block Context Structure**: Structured prompt engineering for better LLM
+        performance'
+      - '**Backward Compatibility**: Maintains support for legacy MEMORY.md and HISTORY.md'
+  - title: Architecture
+    subsections:
+    - title: Directory Structure
+      code_blocks:
+      - language: ''
+        content: "workspace/\n└── memory/\n    ├── MEMORY.md              # Legacy\
+          \ long-term memory (still supported)\n    ├── HISTORY.md             # Legacy\
+          \ history log (still supported)\n    ├── ALS.json               # Active\
+          \ Learning State\n    ├── fractal_index.json     # Lightweight index for\
+          \ fast retrieval\n    └── archives/              # Fractal node storage\n\
+          \        ├── lesson_<uuid1>.json\n        ├── lesson_<uuid2>.json\n    \
+          \    └── ..."
+    - title: Components
+      subsections:
+      - title: 1. FractalNode (memory_types.py)
+        content: 'A Pydantic model representing a knowledge node:'
+        code_blocks:
+        - language: python
+          content: "class FractalNode(BaseModel):\n    id: str                   \
+            \ # Unique identifier\n    timestamp: datetime        # Creation time\n\
+            \    tags: list[str]           # Keywords for retrieval\n    content:\
+            \ str              # The lesson/fact content\n    context_summary: str\
+            \      # Brief summary\n    embedding: list[float]    # Future: vector\
+            \ embeddings"
+      - title: 2. ActiveLearningState (memory_types.py)
+        content: 'Tracks the agent''s evolution:'
+        code_blocks:
+        - language: python
+          content: "class ActiveLearningState(BaseModel):\n    current_focus: str\
+            \              # Current learning focus\n    sparring_partners: list[str]\
+            \    # User IDs or personas\n    evolution_stage: int            # Learning\
+            \ stage\n    recent_reflections: list[str]   # Recent insights\n    last_updated:\
+            \ datetime          # Last update time"
+      - title: 3. MemoryStore (memory.py)
+        content: 'Enhanced memory manager with new methods:
+
+
+          - `save_fractal_node(content, tags, summary)`: Creates and stores a lesson
+
+          - `retrieve_relevant_nodes(query, k)`: Retrieves top-K relevant nodes
+
+          - `get_als_context()`: Returns formatted ALS for prompts
+
+          - `update_als(focus, reflection, stage)`: Updates the learning state'
+        lists:
+        - type: bullet
+          items:
+          - '`save_fractal_node(content, tags, summary)`: Creates and stores a lesson'
+          - '`retrieve_relevant_nodes(query, k)`: Retrieves top-K relevant nodes'
+          - '`get_als_context()`: Returns formatted ALS for prompts'
+          - '`update_als(focus, reflection, stage)`: Updates the learning state'
+      - title: 4. ContextBuilder (context.py)
+        content: 'Implements the 6-block context structure:
+
+
+          1. **System & Persona**: Core identity and capabilities
+
+          2. **Resources & ALS**: Dynamic memory retrieval (ALS + Fractal nodes +
+          Core memory)
+
+          3. **Tools/Skills**: Available capabilities
+
+          4. **Assistant Messages**: Conversation history
+
+          5. **User Message**: Current input
+
+          6. **Tool Calls**: Execution results (handled by LLM)'
+        lists:
+        - type: numbered
+          items:
+          - '**System & Persona**: Core identity and capabilities'
+          - '**Resources & ALS**: Dynamic memory retrieval (ALS + Fractal nodes +
+            Core memory)'
+          - '**Tools/Skills**: Available capabilities'
+          - '**Assistant Messages**: Conversation history'
+          - '**User Message**: Current input'
+          - '**Tool Calls**: Execution results (handled by LLM)'
+      - title: 5. AgentLoop (loop.py)
+        content: 'Adds reflection hooks:
+
+
+          - `_trigger_reflection()`: Automatically captures important interactions
+
+          - Triggers based on keywords ("remember", "important") or tool usage
+
+          - Creates fractal nodes and updates ALS'
+        lists:
+        - type: bullet
+          items:
+          - '`_trigger_reflection()`: Automatically captures important interactions'
+          - Triggers based on keywords ("remember", "important") or tool usage
+          - Creates fractal nodes and updates ALS
+  - title: Configuration
+    content: 'Add to `config.yaml`:'
+    code_blocks:
+    - language: yaml
+      content: "memory:\n  enabled: true\n  provider: local           # or 'mem0',\
+        \ 'openai' (future)\n  top_k: 5                 # Number of nodes to retrieve\n\
+        \  archive_dir: archives\n  als_enabled: true"
+  - title: Usage
+    subsections:
+    - title: Creating Fractal Nodes
+      content: 'Nodes are created automatically when:
+
+        - User says keywords like "remember", "important", "note"
+
+        - Significant tools are used (write_file, exec, spawn)
+
+        - You can also create manually:'
+      code_blocks:
+      - language: python
+        content: "from nanobot.agent.memory import MemoryStore\nfrom pathlib import\
+          \ Path\n\nmemory = MemoryStore(Path(\"workspace\"))\nnode = memory.save_fractal_node(\n\
+          \    content=\"Python uses 4 spaces for indentation\",\n    tags=[\"python\"\
+          , \"syntax\", \"indentation\"],\n    summary=\"Python indentation rule\"\
+          \n)"
+    - title: Retrieving Nodes
+      content: 'Nodes are automatically retrieved when building context based on the
+        user''s query:
+
+
+        ```python'
+- title: Automatic in context building
+  content: 'results = memory.retrieve_relevant_nodes("python syntax", k=5)
+
+    ```'
+  subsections:
+  - title: Updating ALS
+    content: 'The Active Learning State is updated automatically during reflection:'
+    code_blocks:
+    - language: python
+      content: "memory.update_als(\n    focus=\"Learning Python programming\",\n \
+        \   reflection=\"User completed first Python script\",\n    evolution_stage=2\n\
+        )"
+  - title: Accessing in Prompts
+    content: 'The 6-block context automatically includes:
+
+
+      ```'
+- title: RESOURCES & MEMORY
+  subsections:
+  - title: Active Learning State
+    content: 'Current Focus: Learning Python programming
+
+      Evolution Stage: 2'
+  - title: Long-term Memory
+    content: (Content from MEMORY.md)
+  - title: Relevant Resources (Fractal Memory)
+    content: '- **[2024-02-14] python, syntax**: Python uses 4 spaces...
+
+      - **[2024-02-13] python, functions**: Functions are defined with def...
+
+      ```'
+    lists:
+    - type: bullet
+      items:
+      - '**[2024-02-14] python, syntax**: Python uses 4 spaces...'
+      - '**[2024-02-13] python, functions**: Functions are defined with def...'
+  - title: API Reference
+    subsections:
+    - title: MemoryStore
+      subsections:
+      - title: '`save_fractal_node(content: str, tags: list[str], summary: str) ->
+          FractalNode`'
+        content: 'Creates and stores a new lesson node.
+
+
+          **Args:**
+
+          - `content`: The lesson/fact content
+
+          - `tags`: List of keywords for retrieval
+
+          - `summary`: Brief summary (shown in index)
+
+
+          **Returns:** The created FractalNode'
+      - title: '`retrieve_relevant_nodes(query: str, k: int = 5) -> str`'
+        content: 'Retrieves top-K relevant nodes for a query.
+
+
+          **Args:**
+
+          - `query`: Search query
+
+          - `k`: Number of results
+
+
+          **Returns:** Formatted string with relevant nodes'
+      - title: '`get_als_context() -> str`'
+        content: 'Returns formatted Active Learning State.
+
+
+          **Returns:** ALS summary for prompts'
+      - title: '`update_als(focus, reflection, evolution_stage)`'
+        content: 'Updates the Active Learning State.
+
+
+          **Args:**
+
+          - `focus`: New focus area (optional)
+
+          - `reflection`: New reflection (optional)
+
+          - `evolution_stage`: New stage (optional)'
+    - title: ContextBuilder
+      subsections:
+      - title: '`build_messages(history, current_message, ...) -> list[dict]`'
+        content: 'Builds message list with 6-block context structure.
+
+
+          **Returns:** List of messages including system prompt with context'
+  - title: Migration from Legacy System
+    content: 'The new system is **fully backward compatible**:
+
+
+      1. Existing MEMORY.md continues to work
+
+      2. Existing HISTORY.md continues to work
+
+      3. All legacy methods (`read_long_term()`, `write_long_term()`, `append_history()`)
+      still function
+
+      4. New features are additive, not replacing'
+    lists:
+    - type: numbered
+      items:
+      - Existing MEMORY.md continues to work
+      - Existing HISTORY.md continues to work
+      - All legacy methods (`read_long_term()`, `write_long_term()`, `append_history()`)
+        still function
+      - New features are additive, not replacing
+  - title: Testing
+    content: 'Run the test suite:
+
+
+      ```bash'
+- title: Unit tests
+  content: python tests/test_fractal_memory.py
+- title: Integration tests
+  content: python tests/test_context_integration.py
+- title: Demonstration
+  content: 'python demo_fractal_memory.py
+
+    ```'
+  subsections:
+  - title: Future Enhancements
+    content: "1. **Vector Embeddings** ✅ IMPLEMENTED\n   - ✅ Integrated mem0 for semantic\
+      \ search\n   - ✅ Vector similarity for finding related content\n   - ✅ Hybrid\
+      \ search combining keywords and vectors\n   - See [MEM0_INTEGRATION.md](./MEM0_INTEGRATION.md)\
+      \ for details\n\n2. **mem0 Integration** ✅ IMPLEMENTED\n   - ✅ mem0 provider\
+      \ for advanced memory management\n   - ✅ Cloud and local mem0 support\n   -\
+      \ ✅ Automatic embedding generation\n   - See [MEM0_INTEGRATION.md](./MEM0_INTEGRATION.md)\
+      \ for details\n\n3. **Hierarchical Nodes** ✅ IMPLEMENTED\n   - ✅ Parent-child\
+      \ relationships\n   - ✅ Tree-based knowledge graphs\n   - ✅ Hierarchical retrieval\
+      \ methods\n   - See [MEM0_INTEGRATION.md](./MEM0_INTEGRATION.md) for details\n\
+      \n4. **Multi-modal Memory** ✅ IMPLEMENTED\n   - ✅ Text content\n   - ✅ Code\
+      \ snippets with language metadata\n   - ✅ Images with base64 encoding\n   -\
+      \ ✅ Mixed content types\n   - See [MEM0_INTEGRATION.md](./MEM0_INTEGRATION.md)\
+      \ for details\n\n5. **Future Work**\n   - Automatic Consolidation: Merge duplicate/similar\
+      \ nodes\n   - Importance Decay: Time-based importance scoring\n   - Cross-session\
+      \ Sharing: Share memories across users"
+    lists:
+    - type: numbered
+      items:
+      - '**Vector Embeddings** ✅ IMPLEMENTED'
+    - type: numbered
+      items:
+      - '**mem0 Integration** ✅ IMPLEMENTED'
+    - type: numbered
+      items:
+      - '**Hierarchical Nodes** ✅ IMPLEMENTED'
+    - type: numbered
+      items:
+      - '**Multi-modal Memory** ✅ IMPLEMENTED'
+    - type: numbered
+      items:
+      - '**Future Work**'
+  - title: Implementation Checklist
+    content: '- [x] Create memory_types.py with Pydantic models
+
+      - [x] Update config/schema.py with MemoryConfig
+
+      - [x] Implement fractal node storage and retrieval
+
+      - [x] Implement Active Learning State
+
+      - [x] Update ContextBuilder with 6-block structure
+
+      - [x] Add reflection hooks in AgentLoop
+
+      - [x] Create comprehensive tests
+
+      - [x] Maintain backward compatibility
+
+      - [x] Documentation
+
+      - [x] **NEW:** mem0 integration for vector embeddings
+
+      - [x] **NEW:** Multi-modal memory (text, code, images)
+
+      - [x] **NEW:** Hierarchical node relationships
+
+      - [x] **NEW:** Hybrid search (keyword + semantic)'
+    lists:
+    - type: checkbox
+      items:
+      - text: Create memory_types.py with Pydantic models
+        checked: true
+      - text: Update config/schema.py with MemoryConfig
+        checked: true
+      - text: Implement fractal node storage and retrieval
+        checked: true
+      - text: Implement Active Learning State
+        checked: true
+      - text: Update ContextBuilder with 6-block structure
+        checked: true
+      - text: Add reflection hooks in AgentLoop
+        checked: true
+      - text: Create comprehensive tests
+        checked: true
+      - text: Maintain backward compatibility
+        checked: true
+      - text: Documentation
+        checked: true
+      - text: '**NEW:** mem0 integration for vector embeddings'
+        checked: true
+      - text: '**NEW:** Multi-modal memory (text, code, images)'
+        checked: true
+      - text: '**NEW:** Hierarchical node relationships'
+        checked: true
+      - text: '**NEW:** Hybrid search (keyword + semantic)'
+        checked: true
+  - title: References
+    content: '- **Fractal Memory**: Hierarchical knowledge representation
+
+      - **Active Learning**: Continuous learning from interactions
+
+      - **Context Engineering**: Structured prompt design for better LLM performance'
+    lists:
+    - type: bullet
+      items:
+      - '**Fractal Memory**: Hierarchical knowledge representation'
+      - '**Active Learning**: Continuous learning from interactions'
+      - '**Context Engineering**: Structured prompt design for better LLM performance'

@@ -8,7 +8,6 @@ Usage:
 If no config file is provided, tests the example configs.
 """
 
-import json
 import sys
 from pathlib import Path
 
@@ -24,30 +23,30 @@ def test_config(config_path: Path) -> bool:
     print(f"\n{'='*60}")
     print(f"Testing: {config_path}")
     print('='*60)
-    
+
     if not config_path.exists():
         print(f"✗ File not found: {config_path}")
         return False
-    
+
     try:
         config = load_config(config_path)
         print("✓ Config is valid!")
-        print(f"\nConfiguration Summary:")
+        print("\nConfiguration Summary:")
         print(f"  Model: {config.agents.defaults.model}")
         print(f"  Workspace: {config.agents.defaults.workspace}")
         print(f"  Max Tokens: {config.agents.defaults.max_tokens}")
         print(f"  Temperature: {config.agents.defaults.temperature}")
-        
-        print(f"\nMemory Configuration:")
+
+        print("\nMemory Configuration:")
         print(f"  Enabled: {config.memory.enabled}")
         print(f"  Provider: {config.memory.provider}")
         print(f"  Top K: {config.memory.top_k}")
         print(f"  ALS Enabled: {config.memory.als_enabled}")
-        
-        print(f"\nConfigured Providers:")
+
+        print("\nConfigured Providers:")
         providers_with_keys = []
-        for name in ['openai', 'gemini', 'anthropic', 'deepseek', 'groq', 
-                     'openrouter', 'zhipu', 'dashscope', 'moonshot', 'minimax', 
+        for name in ['openai', 'gemini', 'anthropic', 'deepseek', 'groq',
+                     'openrouter', 'zhipu', 'dashscope', 'moonshot', 'minimax',
                      'vllm', 'aihubmix', 'custom']:
             provider = getattr(config.providers, name, None)
             if provider and provider.api_key:
@@ -59,18 +58,18 @@ def test_config(config_path: Path) -> bool:
                 else:
                     masked = '***'
                 print(f"  ✓ {name}: {masked}")
-        
+
         if not providers_with_keys:
             print("  ⚠ No providers configured with API keys")
-        
-        print(f"\nTools Configuration:")
+
+        print("\nTools Configuration:")
         print(f"  Web Search: {'✓' if config.tools.web.search.api_key else '✗'}")
         print(f"  Exec Timeout: {config.tools.exec.timeout}s")
         print(f"  Restrict to Workspace: {config.tools.restrict_to_workspace}")
-        
-        print(f"\nEnabled Channels:")
+
+        print("\nEnabled Channels:")
         channels = []
-        for name in ['telegram', 'whatsapp', 'discord', 'feishu', 'mochat', 
+        for name in ['telegram', 'whatsapp', 'discord', 'feishu', 'mochat',
                      'dingtalk', 'email', 'slack', 'qq']:
             channel = getattr(config.channels, name, None)
             if channel and channel.enabled:
@@ -80,11 +79,11 @@ def test_config(config_path: Path) -> bool:
                 print(f"  ✓ {ch}")
         else:
             print("  None (CLI mode only)")
-        
+
         return True
-        
+
     except Exception as e:
-        print(f"✗ Config validation failed!")
+        print("✗ Config validation failed!")
         print(f"\nError: {e}")
         import traceback
         print("\nFull traceback:")
@@ -106,23 +105,23 @@ def main():
             script_dir / "config.minimal.json",
             script_dir / "config.example.json",
         ]
-        
+
         # Also test the default location if it exists
         default_config = Path.home() / ".nanobot" / "config.json"
         if default_config.exists():
             configs.append(default_config)
-        
+
         results = []
         for config_path in configs:
             results.append(test_config(config_path))
-        
+
         print(f"\n{'='*60}")
         print("Summary")
         print('='*60)
         for config_path, result in zip(configs, results):
             status = "✓ PASS" if result else "✗ FAIL"
             print(f"{status}: {config_path.name}")
-        
+
         all_passed = all(results)
         print(f"\n{'All tests passed!' if all_passed else 'Some tests failed.'}")
         sys.exit(0 if all_passed else 1)

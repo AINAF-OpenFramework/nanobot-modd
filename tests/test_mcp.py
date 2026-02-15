@@ -1,10 +1,9 @@
 """Tests for MCP integration."""
 
-import asyncio
 import json
 from pathlib import Path
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
@@ -91,14 +90,14 @@ def test_mcp_execution_response_to_string():
         is_error=False,
     )
     assert response.to_string() == "Line 1\nLine 2"
-    
+
     # Error response
     error_response = MCPExecutionResponse(
         content=[{"text": "Something went wrong"}],
         is_error=True,
     )
     assert error_response.to_string() == "Error: Something went wrong"
-    
+
     # Empty response
     empty_response = MCPExecutionResponse(content=[], is_error=False)
     assert empty_response.to_string() == ""
@@ -116,20 +115,20 @@ def test_mcp_config_loader_validation():
         "env": {"KEY": "value"},
     }
     assert MCPConfigLoader.validate(valid_config) is True
-    
+
     # Missing name
     assert MCPConfigLoader.validate({"command": "python"}) is False
-    
+
     # Missing command
     assert MCPConfigLoader.validate({"name": "test"}) is False
-    
+
     # Invalid type
     assert MCPConfigLoader.validate({
         "name": "test",
         "command": "python",
         "type": "invalid",
     }) is False
-    
+
     # Invalid args (not list)
     assert MCPConfigLoader.validate({
         "name": "test",
@@ -154,16 +153,16 @@ mcp_servers:
     command: node
     type: local
 """)
-    
+
     # Load configs
     configs = MCPConfigLoader.load(config_file)
-    
+
     assert len(configs) == 2
     assert configs[0].name == "server1"
     assert configs[0].command == "python"
     assert configs[0].args == ["-m", "module1"]
     assert configs[0].env == {"KEY1": "value1"}
-    
+
     assert configs[1].name == "server2"
     assert configs[1].command == "node"
     assert configs[1].type == "local"
@@ -173,7 +172,7 @@ def test_mcp_config_loader_invalid_yaml(tmp_path: Path):
     """Test handling of invalid YAML."""
     config_file = tmp_path / "mcp.yaml"
     config_file.write_text("invalid: yaml: content:")
-    
+
     with pytest.raises(ValueError, match="Invalid YAML"):
         MCPConfigLoader.load(config_file)
 
@@ -181,7 +180,7 @@ def test_mcp_config_loader_invalid_yaml(tmp_path: Path):
 def test_mcp_config_loader_missing_file(tmp_path: Path):
     """Test handling of missing config file."""
     missing_file = tmp_path / "nonexistent.yaml"
-    
+
     with pytest.raises(FileNotFoundError):
         MCPConfigLoader.load(missing_file)
 
@@ -191,13 +190,13 @@ def test_mcp_config_loader_missing_file(tmp_path: Path):
 async def test_mcp_client_connect_and_discover(sample_server_config):
     """Test client connection and tool discovery."""
     client = MCPClient(sample_server_config)
-    
+
     # Mock the subprocess
     mock_process = AsyncMock()
     mock_process.stdin = AsyncMock()
     mock_process.stdout = AsyncMock()
     mock_process.stderr = AsyncMock()
-    
+
     # Mock initialization response
     init_response = {
         "jsonrpc": "2.0",
@@ -207,7 +206,7 @@ async def test_mcp_client_connect_and_discover(sample_server_config):
             "capabilities": {},
         },
     }
-    
+
     # Mock tools/list response
     tools_response = {
         "jsonrpc": "2.0",
@@ -222,7 +221,7 @@ async def test_mcp_client_connect_and_discover(sample_server_config):
             ],
         },
     }
-    
+
     with patch("asyncio.create_subprocess_exec", return_value=mock_process):
         # Mock responses
         mock_process.stdout.readline = AsyncMock(
@@ -231,16 +230,16 @@ async def test_mcp_client_connect_and_discover(sample_server_config):
                 json.dumps(tools_response).encode() + b"\n",
             ]
         )
-        
+
         # Connect
         await client.connect()
         assert client.is_connected()
-        
+
         # Discover tools
         tools = await client.discover_tools()
         assert len(tools) == 1
         assert tools[0].name == "test_tool"
-        
+
         # Cleanup
         await client.disconnect()
 
@@ -250,13 +249,13 @@ async def test_mcp_client_execute_tool(sample_server_config):
     """Test tool execution."""
     client = MCPClient(sample_server_config)
     client._connected = True
-    
+
     # Mock process
     mock_process = AsyncMock()
     mock_process.stdin = AsyncMock()
     mock_process.stdout = AsyncMock()
     client.process = mock_process
-    
+
     # Mock tool execution response
     exec_response = {
         "jsonrpc": "2.0",
@@ -267,14 +266,14 @@ async def test_mcp_client_execute_tool(sample_server_config):
             ],
         },
     }
-    
+
     mock_process.stdout.readline = AsyncMock(
         return_value=json.dumps(exec_response).encode() + b"\n"
     )
-    
+
     # Execute tool
     response = await client.execute_tool("test_tool", {"query": "test"})
-    
+
     assert not response.is_error
     assert "successfully" in response.to_string()
 
@@ -293,20 +292,20 @@ async def test_mcp_tool_adapter(sample_server_config, sample_tool_schema):
             is_error=False,
         )
     )
-    
+
     # Create adapter
     adapter = MCPToolAdapter(mock_client, sample_tool_schema)
-    
+
     # Test properties
     assert "test_server" in adapter.name
     assert "test_tool" in adapter.name
     assert "test_server" in adapter.description
     assert adapter.parameters["type"] == "object"
-    
+
     # Test execution
     result = await adapter.execute(query="test query")
     assert "Result from MCP tool" in result
-    
+
     # Verify client was called
     mock_client.execute_tool.assert_called_once_with(
         "test_tool",
@@ -320,10 +319,10 @@ async def test_mcp_tool_adapter_disconnected_client(sample_server_config, sample
     mock_client = Mock(spec=MCPClient)
     mock_client.config = sample_server_config
     mock_client.is_connected.return_value = False
-    
+
     adapter = MCPToolAdapter(mock_client, sample_tool_schema)
     result = await adapter.execute(query="test")
-    
+
     assert "not connected" in result
 
 
@@ -333,7 +332,7 @@ async def test_mcp_registry_add_client(sample_server_config):
     """Test adding an MCP client to the registry."""
     tool_registry = ToolRegistry()
     mcp_registry = MCPRegistry(tool_registry)
-    
+
     # Mock client
     mock_client = AsyncMock(spec=MCPClient)
     mock_client.config = sample_server_config
@@ -349,16 +348,16 @@ async def test_mcp_registry_add_client(sample_server_config):
             input_schema={"type": "object"},
         ),
     ])
-    
+
     with patch("nanobot.mcp.registry.MCPClient", return_value=mock_client):
         await mcp_registry.add_client(sample_server_config)
-    
+
     # Verify client was added
     assert "test_server" in mcp_registry.client_names
-    
+
     # Verify tools were registered
     assert len(mcp_registry._registered_tools["test_server"]) == 2
-    
+
     # Verify tools are in tool registry
     assert len(tool_registry) >= 2
 
@@ -368,43 +367,43 @@ async def test_mcp_registry_unregister_tools(sample_server_config):
     """Test unregistering tools from a client."""
     tool_registry = ToolRegistry()
     mcp_registry = MCPRegistry(tool_registry)
-    
+
     # Mock some registered tools
     mcp_registry._registered_tools["test_server"] = [
         "mcp_test_server_tool1",
         "mcp_test_server_tool2",
     ]
-    
+
     # Add tools to registry
     from nanobot.agent.tools.base import Tool
-    
+
     class MockTool(Tool):
         def __init__(self, name: str):
             self._name = name
-        
+
         @property
         def name(self) -> str:
             return self._name
-        
+
         @property
         def description(self) -> str:
             return "Mock tool"
-        
+
         @property
         def parameters(self) -> dict[str, Any]:
             return {"type": "object"}
-        
+
         async def execute(self, **kwargs: Any) -> str:
             return "mock"
-    
+
     tool_registry.register(MockTool("mcp_test_server_tool1"))
     tool_registry.register(MockTool("mcp_test_server_tool2"))
-    
+
     initial_count = len(tool_registry)
-    
+
     # Unregister
     mcp_registry.unregister_tools("test_server")
-    
+
     # Verify tools were removed
     assert len(tool_registry) == initial_count - 2
     assert "test_server" not in mcp_registry._registered_tools
@@ -415,12 +414,12 @@ async def test_mcp_registry_disconnect_all(sample_server_config):
     """Test disconnecting all clients."""
     tool_registry = ToolRegistry()
     mcp_registry = MCPRegistry(tool_registry)
-    
+
     # Add mock clients
     mock_client1 = AsyncMock(spec=MCPClient)
     mock_client1.config = sample_server_config
     mock_client1.disconnect = AsyncMock()
-    
+
     mock_client2 = AsyncMock(spec=MCPClient)
     mock_client2.config = MCPServerConfig(
         name="server2",
@@ -428,19 +427,19 @@ async def test_mcp_registry_disconnect_all(sample_server_config):
         command="test",
     )
     mock_client2.disconnect = AsyncMock()
-    
+
     mcp_registry._clients["server1"] = mock_client1
     mcp_registry._clients["server2"] = mock_client2
     mcp_registry._registered_tools["server1"] = []
     mcp_registry._registered_tools["server2"] = []
-    
+
     # Disconnect all
     await mcp_registry.disconnect_all()
-    
+
     # Verify disconnects were called
     mock_client1.disconnect.assert_called_once()
     mock_client2.disconnect.assert_called_once()
-    
+
     # Verify clients were removed
     assert len(mcp_registry.client_names) == 0
 
@@ -450,7 +449,7 @@ async def test_mcp_registry_disconnect_all(sample_server_config):
 async def test_integration_with_tool_registry():
     """Test full integration with ToolRegistry."""
     tool_registry = ToolRegistry()
-    
+
     # Create mock MCP client with tools
     mock_client = AsyncMock(spec=MCPClient)
     mock_client.config = MCPServerConfig(
@@ -478,21 +477,21 @@ async def test_integration_with_tool_registry():
             is_error=False,
         )
     )
-    
+
     # Register with MCP registry
     mcp_registry = MCPRegistry(tool_registry)
-    
+
     with patch("nanobot.mcp.registry.MCPClient", return_value=mock_client):
         await mcp_registry.add_client(mock_client.config)
-    
+
     # Verify tool is available in registry
     tools = tool_registry.get_definitions()
     tool_names = [t["function"]["name"] for t in tools]
     assert any("echo" in name for name in tool_names)
-    
+
     # Execute tool through registry
     tool_name = [n for n in tool_names if "echo" in n][0]
     result = await tool_registry.execute(tool_name, {"message": "test message"})
-    
+
     assert "Echo" in result
     assert "test message" in result

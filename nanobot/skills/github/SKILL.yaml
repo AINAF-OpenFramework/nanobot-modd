@@ -1,0 +1,71 @@
+_meta:
+  source: SKILL.md
+  format_version: '1.0'
+frontmatter:
+  name: github
+  description: Interact with GitHub using the `gh` CLI. Use `gh issue`, `gh pr`, `gh
+    run`, and `gh api` for issues, PRs, CI runs, and advanced queries.
+  metadata:
+    nanobot:
+      emoji: 🐙
+      requires:
+        bins:
+        - gh
+      install:
+      - id: brew
+        kind: brew
+        formula: gh
+        bins:
+        - gh
+        label: Install GitHub CLI (brew)
+      - id: apt
+        kind: apt
+        package: gh
+        bins:
+        - gh
+        label: Install GitHub CLI (apt)
+title: GitHub Skill
+sections:
+- title: GitHub Skill
+  content: Use the `gh` CLI to interact with GitHub. Always specify `--repo owner/repo`
+    when not in a git directory, or use URLs directly.
+  subsections:
+  - title: Pull Requests
+    content: 'Check CI status on a PR:
+
+
+
+      List recent workflow runs:
+
+
+
+      View a run and see which steps failed:
+
+
+
+      View logs for failed steps only:'
+    code_blocks:
+    - language: bash
+      content: gh pr checks 55 --repo owner/repo
+    - language: bash
+      content: gh run list --repo owner/repo --limit 10
+    - language: bash
+      content: gh run view <run-id> --repo owner/repo
+    - language: bash
+      content: gh run view <run-id> --repo owner/repo --log-failed
+  - title: API for Advanced Queries
+    content: 'The `gh api` command is useful for accessing data not available through
+      other subcommands.
+
+
+      Get PR with specific fields:'
+    code_blocks:
+    - language: bash
+      content: gh api repos/owner/repo/pulls/55 --jq '.title, .state, .user.login'
+  - title: JSON Output
+    content: 'Most commands support `--json` for structured output.  You can use `--jq`
+      to filter:'
+    code_blocks:
+    - language: bash
+      content: 'gh issue list --repo owner/repo --json number,title --jq ''.[] | "\(.number):
+        \(.title)"'''

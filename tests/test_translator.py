@@ -3,11 +3,9 @@
 import tempfile
 from pathlib import Path
 
-import pytest
 import yaml
 
 from nanobot.utils.md_parser import (
-    CodeBlock,
     ParsedMarkdown,
     Section,
     extract_code_blocks,
@@ -18,7 +16,6 @@ from nanobot.utils.md_parser import (
     section_to_dict,
 )
 from nanobot.utils.translator import (
-    SyncStats,
     TranslatorConfig,
     export_yaml_to_md,
     get_md_path,

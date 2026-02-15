@@ -3,7 +3,6 @@
 import tempfile
 from pathlib import Path
 
-import pytest
 import yaml
 
 from nanobot.agent.context import ContextBuilder
@@ -244,7 +243,6 @@ class TestConfigSchemaIntegration:
 
     def test_translator_config_customization(self):
         """Test customizing translator config."""
-        from nanobot.config.schema import TranslatorConfig
 
         config = TranslatorConfig(
             enabled=False,

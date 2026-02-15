@@ -1,0 +1,18 @@
+_meta:
+  source: HEARTBEAT.md
+  format_version: '1.0'
+title: Heartbeat Tasks
+sections:
+- title: Heartbeat Tasks
+  content: 'This file is checked every 30 minutes by your nanobot agent.
+
+    Add tasks below that you want the agent to work on periodically.
+
+
+    If this file has no tasks (only headers and comments), the agent will skip the
+    heartbeat.'
+  subsections:
+  - title: Active Tasks
+    content: <!-- Add your periodic tasks below this line -->
+  - title: Completed
+    content: <!-- Move completed tasks here or delete them -->

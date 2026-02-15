@@ -1,0 +1,156 @@
+_meta:
+  source: TOOLS.md
+  format_version: '1.0'
+title: Available Tools
+sections:
+- title: Available Tools
+  content: This document describes the tools available to nanobot.
+  subsections:
+  - title: File Operations
+    subsections:
+    - title: read_file
+      content: Read the contents of a file.
+      code_blocks:
+      - language: ''
+        content: 'read_file(path: str) -> str'
+    - title: write_file
+      content: Write content to a file (creates parent directories if needed).
+      code_blocks:
+      - language: ''
+        content: 'write_file(path: str, content: str) -> str'
+    - title: edit_file
+      content: Edit a file by replacing specific text.
+      code_blocks:
+      - language: ''
+        content: 'edit_file(path: str, old_text: str, new_text: str) -> str'
+    - title: list_dir
+      content: List contents of a directory.
+      code_blocks:
+      - language: ''
+        content: 'list_dir(path: str) -> str'
+  - title: Shell Execution
+    subsections:
+    - title: exec
+      content: 'Execute a shell command and return output.
+
+
+
+        **Safety Notes:**
+
+        - Commands have a configurable timeout (default 60s)
+
+        - Dangerous commands are blocked (rm -rf, format, dd, shutdown, etc.)
+
+        - Output is truncated at 10,000 characters
+
+        - Optional `restrictToWorkspace` config to limit paths'
+      code_blocks:
+      - language: ''
+        content: 'exec(command: str, working_dir: str = None) -> str'
+  - title: Web Access
+    subsections:
+    - title: web_search
+      content: 'Search the web using Brave Search API.
+
+
+
+        Returns search results with titles, URLs, and snippets. Requires `tools.web.search.apiKey`
+        in config.'
+      code_blocks:
+      - language: ''
+        content: 'web_search(query: str, count: int = 5) -> str'
+    - title: web_fetch
+      content: 'Fetch and extract main content from a URL.
+
+
+
+        **Notes:**
+
+        - Content is extracted using readability
+
+        - Supports markdown or plain text extraction
+
+        - Output is truncated at 50,000 characters by default'
+      code_blocks:
+      - language: ''
+        content: 'web_fetch(url: str, extractMode: str = "markdown", maxChars: int
+          = 50000) -> str'
+  - title: Communication
+    subsections:
+    - title: message
+      content: Send a message to the user (used internally).
+      code_blocks:
+      - language: ''
+        content: 'message(content: str, channel: str = None, chat_id: str = None)
+          -> str'
+  - title: Background Tasks
+    subsections:
+    - title: spawn
+      content: 'Spawn a subagent to handle a task in the background.
+
+
+
+        Use for complex or time-consuming tasks that can run independently. The subagent
+        will complete the task and report back when done.'
+      code_blocks:
+      - language: ''
+        content: 'spawn(task: str, label: str = None) -> str'
+  - title: Scheduled Reminders (Cron)
+    content: 'Use the `exec` tool to create scheduled reminders with `nanobot cron
+      add`:'
+    subsections:
+    - title: Set a recurring reminder
+      content: '```bash'
+- title: Every day at 9am
+  content: nanobot cron add --name "morning" --message "Good morning! ☀️" --cron "0
+    9 * * *"
+- title: Every 2 hours
+  content: 'nanobot cron add --name "water" --message "Drink water! 💧" --every 7200
+
+    ```'
+  subsections:
+  - title: Set a one-time reminder
+    content: '```bash'
+- title: At a specific time (ISO format)
+  content: 'nanobot cron add --name "meeting" --message "Meeting starts now!" --at
+    "2025-01-31T15:00:00"
+
+    ```'
+  subsections:
+  - title: Manage reminders
+    code_blocks:
+    - language: bash
+      content: 'nanobot cron list              # List all jobs
+
+        nanobot cron remove <job_id>   # Remove a job'
+  - title: Heartbeat Task Management
+    content: 'The `HEARTBEAT.md` file in the workspace is checked every 30 minutes.
+
+      Use file operations to manage periodic tasks:'
+    subsections:
+    - title: Add a heartbeat task
+      content: '```python'
+- title: Append a new task
+  content: "edit_file(\n    path=\"HEARTBEAT.md\",\n    old_text=\"## Example Tasks\"\
+    ,\n    new_text=\"- [ ] New periodic task here\\n\\n## Example Tasks\"\n)\n```"
+  subsections:
+  - title: Remove a heartbeat task
+    content: '```python'
+- title: Remove a specific task
+  content: "edit_file(\n    path=\"HEARTBEAT.md\",\n    old_text=\"- [ ] Task to remove\\\
+    n\",\n    new_text=\"\"\n)\n```"
+  subsections:
+  - title: Rewrite all tasks
+    content: '```python'
+- title: Replace the entire file
+  content: "write_file(\n    path=\"HEARTBEAT.md\",\n    content=\"# Heartbeat Tasks\\\
+    n\\n- [ ] Task 1\\n- [ ] Task 2\\n\"\n)\n```\n\n---"
+  subsections:
+  - title: Adding Custom Tools
+    content: 'To add custom tools:
+
+      1. Create a class that extends `Tool` in `nanobot/agent/tools/`
+
+      2. Implement `name`, `description`, `parameters`, and `execute`
+
+      3. Register it in `AgentLoop._register_default_tools()`'

@@ -1,12 +1,13 @@
 """Tests for context builder."""
 
-from datetime import datetime, timedelta
 import tempfile
-from unittest.mock import AsyncMock
+from datetime import datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import AsyncMock
 
 import pytest
+
 from nanobot.agent.context import ContextBuilder
 from nanobot.agent.latent import LatentReasoner
 from nanobot.agent.memory import MemoryStore
@@ -22,13 +23,13 @@ def test_cognitive_directive_in_system_prompt():
     """Test that cognitive directive is included in system prompt."""
     with tempfile.TemporaryDirectory() as tmpdir:
         workspace = Path(tmpdir)
-        
+
         # Create a context builder
         context = ContextBuilder(workspace)
-        
+
         # Build system prompt
         system_prompt = context.build_system_prompt()
-        
+
         # Verify cognitive directive is present
         assert "# COGNITIVE DIRECTIVE" in system_prompt
         assert "Memory retrieved in the RESOURCES & MEMORY section is authoritative internal knowledge" in system_prompt
@@ -44,20 +45,20 @@ def test_cognitive_directive_placement():
     """Test that cognitive directive appears after bootstrap and before resources."""
     with tempfile.TemporaryDirectory() as tmpdir:
         workspace = Path(tmpdir)
-        
+
         # Create a context builder
         context = ContextBuilder(workspace)
-        
+
         # Build system prompt
         system_prompt = context.build_system_prompt(user_query="test query")
-        
+
         # Find positions
         cognitive_pos = system_prompt.find("# COGNITIVE DIRECTIVE")
         resources_pos = system_prompt.find("# RESOURCES & MEMORY")
-        
+
         # Cognitive directive should be present
         assert cognitive_pos != -1, "Cognitive directive not found in system prompt"
-        
+
         # If resources section exists, cognitive directive should come before it
         if resources_pos != -1:
             assert cognitive_pos < resources_pos, "Cognitive directive should appear before resources section"
@@ -316,7 +317,11 @@ def test_health_payload_schema(monkeypatch):
 
     assert payload["status"] == "ok"
     assert payload["version"] == "vtest"
-    assert set(payload.keys()) == {"status", "version", "memory", "latent_reasoning"}
+    # Triune field is optional depending on workspace setup
+    assert "status" in payload
+    assert "version" in payload
+    assert "memory" in payload
+    assert "latent_reasoning" in payload
     assert "enabled" in payload["memory"]
     assert "entanglement_weight" in payload["memory"]
     assert "enabled" in payload["latent_reasoning"]

@@ -1,0 +1,89 @@
+_meta:
+  source: USER.md
+  format_version: '1.0'
+title: User Profile
+sections:
+- title: User Profile
+  content: Information about the user to help personalize interactions.
+  subsections:
+  - title: Basic Information
+    content: '- **Name**: (your name)
+
+      - **Timezone**: (your timezone, e.g., UTC+8)
+
+      - **Language**: (preferred language)'
+    lists:
+    - type: bullet
+      items:
+      - '**Name**: (your name)'
+      - '**Timezone**: (your timezone, e.g., UTC+8)'
+      - '**Language**: (preferred language)'
+  - title: Preferences
+    subsections:
+    - title: Communication Style
+      content: '- [ ] Casual
+
+        - [ ] Professional
+
+        - [ ] Technical'
+      lists:
+      - type: checkbox
+        items:
+        - text: Casual
+          checked: false
+        - text: Professional
+          checked: false
+        - text: Technical
+          checked: false
+    - title: Response Length
+      content: '- [ ] Brief and concise
+
+        - [ ] Detailed explanations
+
+        - [ ] Adaptive based on question'
+      lists:
+      - type: checkbox
+        items:
+        - text: Brief and concise
+          checked: false
+        - text: Detailed explanations
+          checked: false
+        - text: Adaptive based on question
+          checked: false
+    - title: Technical Level
+      content: '- [ ] Beginner
+
+        - [ ] Intermediate
+
+        - [ ] Expert'
+      lists:
+      - type: checkbox
+        items:
+        - text: Beginner
+          checked: false
+        - text: Intermediate
+          checked: false
+        - text: Expert
+          checked: false
+  - title: Work Context
+    content: '- **Primary Role**: (your role, e.g., developer, researcher)
+
+      - **Main Projects**: (what you''re working on)
+
+      - **Tools You Use**: (IDEs, languages, frameworks)'
+    lists:
+    - type: bullet
+      items:
+      - '**Primary Role**: (your role, e.g., developer, researcher)'
+      - '**Main Projects**: (what you''re working on)'
+      - '**Tools You Use**: (IDEs, languages, frameworks)'
+  - title: Topics of Interest
+    content: "- \n- \n-"
+  - title: Special Instructions
+    content: '(Any specific instructions for how the assistant should behave)
+
+
+      ---
+
+
+      *Edit this file to customize nanobot''s behavior for your needs.*'
