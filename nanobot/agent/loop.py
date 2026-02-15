@@ -225,8 +225,12 @@ class AgentLoop:
         )
         should_clarify = latent_state.entropy > self.clarify_entropy_threshold
         if should_clarify:
-            opt1 = latent_state.hypotheses[0].intent if len(latent_state.hypotheses) > 0 else "continue"
-            opt2 = latent_state.hypotheses[1].intent if len(latent_state.hypotheses) > 1 else "adjust direction"
+            if len(latent_state.hypotheses) >= 2:
+                opt1 = latent_state.hypotheses[0].intent
+                opt2 = latent_state.hypotheses[1].intent
+            else:
+                opt1 = "continue with your current request"
+                opt2 = "provide a bit more detail"
             return OutboundMessage(
                 channel=msg.channel,
                 chat_id=msg.chat_id,

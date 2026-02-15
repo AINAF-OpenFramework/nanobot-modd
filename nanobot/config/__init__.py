@@ -7,7 +7,7 @@ from nanobot.config.schema import Config
 
 
 class AgentConfig(BaseSettings):
-    """Runtime safety settings for latent reasoning."""
+    """Runtime configuration for latent reasoning."""
 
     clarify_entropy_threshold: float = 0.8
     latent_timeout_seconds: int = 10

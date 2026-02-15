@@ -4,6 +4,8 @@ import tempfile
 from pathlib import Path
 
 from nanobot.agent.context import ContextBuilder
+from nanobot.agent.memory import MemoryStore
+from nanobot.agent.memory_types import FractalNode, SuperpositionalState
 
 
 def test_cognitive_directive_in_system_prompt():
@@ -49,3 +51,57 @@ def test_cognitive_directive_placement():
         # If resources section exists, cognitive directive should come before it
         if resources_pos != -1:
             assert cognitive_pos < resources_pos, "Cognitive directive should appear before resources section"
+
+
+def test_fractal_node_serialization():
+    node = FractalNode(
+        content="Test content",
+        context_summary="Summary",
+        entangled_ids={"node_abc": 0.8},
+    )
+    json_str = node.model_dump_json()
+    loaded = FractalNode.model_validate_json(json_str)
+    assert loaded.entangled_ids["node_abc"] == 0.8
+
+
+def test_latent_state_parsing():
+    raw_json = """
+    {
+        "hypotheses": [],
+        "entropy": 0.5,
+        "strategic_direction": "go"
+    }
+    """
+    state = SuperpositionalState.model_validate_json(raw_json)
+    assert state.entropy == 0.5
+    assert state.hypotheses == []
+
+
+def test_memory_normalization_logic():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        memory = MemoryStore(Path(tmpdir))
+
+        node_a = memory.save_fractal_node(
+            content="alpha vector score candidate",
+            tags=["alpha"],
+            summary="alpha summary",
+        )
+        node_b = memory.save_fractal_node(
+            content="beta",
+            tags=["beta"],
+            summary="beta summary",
+        )
+        node_c = memory.save_fractal_node(
+            content="gamma",
+            tags=["gamma"],
+            summary="gamma summary",
+        )
+
+        node_b.entangled_ids[node_a.id] = 1.0
+        node_c.entangled_ids[node_a.id] = 1.0
+        memory._update_node(node_b)
+        memory._update_node(node_c)
+
+        ranked = memory.get_entangled_context("alpha", top_k=2)
+        assert ranked
+        assert ranked[0].id == node_a.id

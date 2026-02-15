@@ -59,7 +59,11 @@ class ContextBuilder:
             parts.append(bootstrap)
 
         if latent_state:
-            top_intent = latent_state.hypotheses[0].intent if latent_state.hypotheses else "Undetermined Intent"
+            top_intent = (
+                latent_state.hypotheses[0].intent
+                if latent_state.hypotheses
+                else "proceed with standard processing"
+            )
             parts.append(
                 "<latent_state>\n"
                 f"entropy: {latent_state.entropy}\n"

@@ -14,6 +14,9 @@ logger = logging.getLogger(__name__)
 
 # Constants
 MAX_CONTENT_PREVIEW_LENGTH = 200  # Maximum length for content preview in retrieval
+INITIAL_CANDIDATE_MULTIPLIER = 2
+SEMANTIC_WEIGHT = 0.7
+ENTANGLEMENT_WEIGHT = 0.3
 
 
 class MemoryStore:
@@ -242,7 +245,7 @@ class MemoryStore:
             if not nodes:
                 return []
             denom = max(len(nodes) - 1, 1)
-            return [(node, 1.0 - (idx / denom)) for idx, node in enumerate(nodes)]
+            return [(node, (len(nodes) - 1 - idx) / denom) for idx, node in enumerate(nodes)]
 
         try:
             index_data = json.loads(self.index_file.read_text(encoding="utf-8"))
@@ -287,7 +290,7 @@ class MemoryStore:
         Retrieve context with hybrid scoring:
         score = (vector_similarity * 0.7) + (normalized_entanglement * 0.3)
         """
-        initial_results = self._vector_search(query, k=max(top_k * 2, 1))
+        initial_results = self._vector_search(query, k=max(top_k * INITIAL_CANDIDATE_MULTIPLIER, 1))
         if not initial_results:
             return []
 
@@ -321,7 +324,9 @@ class MemoryStore:
             normalized_strength = (
                 data["raw_entanglement"] / max_entanglement if max_entanglement > 0 else 0.0
             )
-            final_score = (data["vec_score"] * 0.7) + (normalized_strength * 0.3)
+            final_score = (data["vec_score"] * SEMANTIC_WEIGHT) + (
+                normalized_strength * ENTANGLEMENT_WEIGHT
+            )
             final_scores.append((data["node"], final_score))
 
         final_scores.sort(key=lambda x: x[1], reverse=True)

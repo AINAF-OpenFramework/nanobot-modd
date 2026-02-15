@@ -2,6 +2,10 @@
 
 import asyncio
 import json
+from json import JSONDecodeError
+
+from loguru import logger
+from pydantic import ValidationError
 
 from nanobot.agent.memory_types import SuperpositionalState
 from nanobot.providers.base import LLMProvider
@@ -52,7 +56,13 @@ class LatentReasoner:
             )
             payload = (response.content or "").strip()
             if payload.startswith("```"):
-                payload = payload.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
+                payload = payload.removeprefix("```json").removeprefix("```").strip()
+                if payload.endswith("```"):
+                    payload = payload[:-3].strip()
             return SuperpositionalState.model_validate(json.loads(payload))
-        except Exception:
+        except (asyncio.TimeoutError, JSONDecodeError, ValidationError) as exc:
+            logger.debug(f"Latent reasoning fallback triggered: {exc}")
+            return fallback_state
+        except Exception as exc:
+            logger.warning(f"Unexpected latent reasoning error: {exc}")
             return fallback_state
