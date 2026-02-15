@@ -8,9 +8,8 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
 
 import yaml
 
@@ -86,7 +85,7 @@ class TriuneVerifier:
             VerificationResult with status and details
         """
         result = VerificationResult()
-        result.last_verification = datetime.utcnow().isoformat() + "Z"
+        result.last_verification = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
         # Find all .md files recursively
         md_files = list(self._root_path.rglob("*.md"))
@@ -106,9 +105,13 @@ class TriuneVerifier:
 
             # Check if YAML exists
             if not yaml_path.exists():
-                result.missing_yaml.append(str(md_path.relative_to(self._root_path)))
                 if fix:
-                    self._fix_missing_yaml(md_path, yaml_path)
+                    if self._fix_missing_yaml(md_path, yaml_path):
+                        result.synced_yaml_files += 1
+                    else:
+                        result.missing_yaml.append(str(md_path.relative_to(self._root_path)))
+                else:
+                    result.missing_yaml.append(str(md_path.relative_to(self._root_path)))
                 continue
 
             result.synced_yaml_files += 1

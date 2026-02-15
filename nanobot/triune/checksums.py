@@ -9,9 +9,8 @@ import hashlib
 import json
 import logging
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -146,7 +145,7 @@ class ChecksumManager:
             md_checksum=md_checksum,
             yaml_checksum=yaml_checksum,
             algorithm=algorithm,
-            last_verified=datetime.utcnow().isoformat() + "Z",
+            last_verified=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         )
         return True
 
