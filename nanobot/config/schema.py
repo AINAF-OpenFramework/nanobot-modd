@@ -242,6 +242,9 @@ class MemoryConfig(BaseModel):
     embedding_model: str = "text-embedding-3-small"  # OpenAI model or other
     embedding_dim: int = 1536  # Dimension of embeddings
     use_hybrid_search: bool = True  # Combine keyword and vector search
+    clarify_entropy_threshold: float = 0.8
+    latent_timeout_seconds: int = 10
+    max_context_nodes: int = 5
 
 
 class Config(BaseSettings):

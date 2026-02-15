@@ -14,6 +14,9 @@ logger = logging.getLogger(__name__)
 
 # Constants
 MAX_CONTENT_PREVIEW_LENGTH = 200  # Maximum length for content preview in retrieval
+INITIAL_CANDIDATE_MULTIPLIER = 2
+SEMANTIC_WEIGHT = 0.7
+ENTANGLEMENT_WEIGHT = 0.3
 
 
 class MemoryStore:
@@ -234,6 +237,100 @@ class MemoryStore:
         archive_path = self.archives_dir / f"lesson_{node.id}.json"
         archive_path.write_text(node.model_dump_json(indent=2), encoding="utf-8")
         self._update_index(node)
+
+    def _vector_search(self, query: str, k: int) -> list[tuple[FractalNode, float]]:
+        """Return node candidates with a normalized relevance score."""
+        if self._mem0_provider:
+            nodes = self._mem0_provider.search_memories(query, k=k)
+            if not nodes:
+                return []
+            denom = max(len(nodes) - 1, 1)
+            return [(node, (len(nodes) - 1 - idx) / denom) for idx, node in enumerate(nodes)]
+
+        try:
+            index_data = json.loads(self.index_file.read_text(encoding="utf-8"))
+        except Exception:
+            return []
+
+        query_words = set(query.lower().split())
+        scored_entries: list[tuple[float, dict[str, Any]]] = []
+        for entry in index_data:
+            score = 0.0
+            for tag in entry.get("tags", []):
+                if tag.lower() in query_words:
+                    score += 5.0
+            summary_words = set(entry.get("summary", "").lower().split())
+            score += float(len(query_words.intersection(summary_words)))
+            if score > 0:
+                scored_entries.append((score, entry))
+
+        if not scored_entries:
+            return []
+
+        scored_entries.sort(key=lambda x: x[0], reverse=True)
+        max_score = scored_entries[0][0]
+        top_results = scored_entries[:k]
+        results: list[tuple[FractalNode, float]] = []
+
+        for score, entry in top_results:
+            archive_path = self.archives_dir / f"lesson_{entry['id']}.json"
+            if not archive_path.exists():
+                continue
+            try:
+                node = FractalNode.model_validate_json(archive_path.read_text(encoding="utf-8"))
+                normalized = score / max_score if max_score > 0 else 0.0
+                results.append((node, normalized))
+            except Exception as e:
+                logger.warning(f"Could not load node {entry['id']}: {e}")
+
+        return results
+
+    def get_entangled_context(self, query: str, top_k: int = 5) -> list[FractalNode]:
+        """
+        Retrieve context with hybrid scoring:
+        score = (vector_similarity * 0.7) + (normalized_entanglement * 0.3)
+        """
+        initial_results = self._vector_search(query, k=max(top_k * INITIAL_CANDIDATE_MULTIPLIER, 1))
+        if not initial_results:
+            return []
+
+        candidates: dict[str, dict[str, Any]] = {
+            node.id: {"node": node, "vec_score": score, "raw_entanglement": 0.0}
+            for node, score in initial_results
+        }
+
+        for node, vec_score in initial_results:
+            for ent_id, strength in node.entangled_ids.items():
+                if ent_id in candidates:
+                    continue
+                ent_node = self.get_node_by_id(ent_id)
+                if ent_node:
+                    candidates[ent_id] = {
+                        "node": ent_node,
+                        "vec_score": vec_score * strength,
+                        "raw_entanglement": 0.0,
+                    }
+
+        max_entanglement = 0.0
+        for candidate_id, data in candidates.items():
+            incoming_score = 0.0
+            for other in candidates.values():
+                incoming_score += other["node"].entangled_ids.get(candidate_id, 0.0)
+            data["raw_entanglement"] = incoming_score
+            max_entanglement = max(max_entanglement, incoming_score)
+
+        final_scores: list[tuple[FractalNode, float]] = []
+        for data in candidates.values():
+            normalized_strength = (
+                data["raw_entanglement"] / max_entanglement if max_entanglement > 0 else 0.0
+            )
+            final_score = (data["vec_score"] * SEMANTIC_WEIGHT) + (
+                normalized_strength * ENTANGLEMENT_WEIGHT
+            )
+            final_scores.append((data["node"], final_score))
+
+        final_scores.sort(key=lambda x: x[1], reverse=True)
+        return [node for node, _ in final_scores[:top_k]]
     
     def retrieve_relevant_nodes(self, query: str, k: int = 5) -> str:
         """

@@ -48,6 +48,9 @@ class FractalNode(BaseModel):
     children_ids: list[str] = Field(default_factory=list)  # Child node IDs
     depth: int = 0  # Depth in the hierarchy (0 = root)
 
+    # Graph edges: {node_id: entanglement_strength (0.0 - 1.0)}
+    entangled_ids: dict[str, float] = Field(default_factory=dict)
+
 
 class ActiveLearningState(BaseModel):
     """
@@ -79,3 +82,20 @@ class ContextBlock(BaseModel):
     name: str
     content: str
     metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class Hypothesis(BaseModel):
+    """A specific interpretation of user intent."""
+
+    intent: str
+    confidence: float
+    reasoning: str
+    required_tools: list[str] = Field(default_factory=list)
+
+
+class SuperpositionalState(BaseModel):
+    """Represents latent intent uncertainty before tool execution."""
+
+    hypotheses: list[Hypothesis] = Field(default_factory=list)
+    entropy: float = 0.0
+    strategic_direction: str = "Proceed with standard processing."
