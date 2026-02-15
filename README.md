@@ -134,6 +134,19 @@ That's it! You have a working AI assistant in 2 minutes.
 > [!NOTE]
 > For detailed configuration options including multi-provider setup, memory configuration, and troubleshooting, see **[CONFIG.md](CONFIG.md)**.
 
+## 🏭 Production Readiness
+
+- CI and CodeQL workflows are provided in `.github/workflows/`.
+- Optional Prometheus metrics exporter is available at `:9090/metrics` when telemetry is enabled.
+- Per-channel rate limiting is enabled by default (`10` calls / `60` seconds).
+- You can migrate plaintext provider keys into the system keyring with:
+
+```bash
+nanobot migrate-keys
+```
+
+See **[docs/PRODUCTION_DEPLOYMENT.md](docs/PRODUCTION_DEPLOYMENT.md)** for deployment details.
+
 ## 🖥️ Local Models (vLLM)
 
 Run nanobot with your own local models using vLLM or any OpenAI-compatible server.

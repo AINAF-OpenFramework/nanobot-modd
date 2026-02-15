@@ -195,6 +195,29 @@ def onboard():
     console.print("\n[dim]Want Telegram/WhatsApp? See: https://github.com/HKUDS/nanobot#-chat-apps[/dim]")
 
 
+@app.command("migrate-keys")
+def migrate_keys():
+    """Migrate API keys from config file to secure keyring storage."""
+    from nanobot.config.keyring import KeyringManager
+    from nanobot.config.loader import load_config
+    from nanobot.providers.registry import PROVIDERS
+
+    config = load_config()
+    km = KeyringManager(use_keyring=config.use_keyring)
+    if not km.use_keyring:
+        console.print("[yellow]Keyring backend is unavailable; keeping plain-text configuration.[/yellow]")
+        raise typer.Exit()
+
+    migrated = 0
+    for spec in PROVIDERS:
+        provider_config = getattr(config.providers, spec.name, None)
+        if provider_config and provider_config.api_key:
+            km.set_key(spec.name, provider_config.api_key)
+            console.print(f"[green]✓[/green] Migrated {spec.name}")
+            migrated += 1
+
+    if migrated == 0:
+        console.print("[dim]No API keys found in config file.[/dim]")
 
 
 def _create_workspace_templates(workspace: Path):
@@ -280,19 +303,23 @@ This file stores important information that should persist across sessions.
 
 def _make_provider(config):
     """Create LiteLLMProvider from config. Exits if no API key found."""
+    from nanobot.config.keyring import KeyringManager, load_api_key
     from nanobot.providers.litellm_provider import LiteLLMProvider
     p = config.get_provider()
+    provider_name = config.get_provider_name()
     model = config.agents.defaults.model
-    if not (p and p.api_key) and not model.startswith("bedrock/"):
+    km = KeyringManager(use_keyring=config.use_keyring)
+    api_key = load_api_key(provider_name or "", p.api_key if p else "", km) if p else ""
+    if not api_key and not model.startswith("bedrock/"):
         console.print("[red]Error: No API key configured.[/red]")
         console.print("Set one in ~/.nanobot/config.json under providers section")
         raise typer.Exit(1)
     return LiteLLMProvider(
-        api_key=p.api_key if p else None,
+        api_key=api_key or None,
         api_base=config.get_api_base(),
         default_model=model,
         extra_headers=p.extra_headers if p else None,
-        provider_name=config.get_provider_name(),
+        provider_name=provider_name,
     )
 
 
@@ -328,6 +355,23 @@ def _get_memory_config(config: "Config") -> dict:
         "latent_retry_max_wait": config.memory.latent_retry_max_wait,
         "latent_retry_multiplier": config.memory.latent_retry_multiplier,
         "importance_decay_rate": config.memory.importance_decay_rate,
+    }
+
+
+def _get_rate_limit_config(config: "Config") -> dict:
+    """Extract rate limit configuration from global config."""
+    return {
+        "enabled": config.rate_limit_enabled,
+        "max_calls": config.rate_limit_max_calls,
+        "window_seconds": config.rate_limit_window_seconds,
+    }
+
+
+def _get_telemetry_config(config: "Config") -> dict:
+    """Extract telemetry configuration from global config."""
+    return {
+        "enabled": config.telemetry.enabled,
+        "port": config.telemetry.port,
     }
 
 
@@ -376,6 +420,8 @@ def gateway(
         restrict_to_workspace=config.tools.restrict_to_workspace,
         session_manager=session_manager,
         memory_config=_get_memory_config(config),
+        rate_limit_config=_get_rate_limit_config(config),
+        telemetry_config=_get_telemetry_config(config),
     )
     
     # Set cron callback (needs agent)
@@ -483,6 +529,8 @@ def agent(
         exec_config=config.tools.exec,
         restrict_to_workspace=config.tools.restrict_to_workspace,
         memory_config=_get_memory_config(config),
+        rate_limit_config=_get_rate_limit_config(config),
+        telemetry_config=_get_telemetry_config(config),
     )
     
     # Show spinner when logs are off (no output to miss); skip when logs are on

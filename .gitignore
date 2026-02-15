@@ -20,3 +20,8 @@ poetry.lock
 .pytest_cache/
 botpy.log
 tests/
+!docs/PRODUCTION_DEPLOYMENT.md
+!docs/
+!tests/
+!tests/test_rate_limiter.py
+!tests/test_circuit_breaker.py
