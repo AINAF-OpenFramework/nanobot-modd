@@ -1026,5 +1026,14 @@ def status():
                 console.print(f"{spec.label}: {'[green]✓[/green]' if has_key else '[dim]not set[/dim]'}")
 
 
+# ============================================================================
+# Triune Commands
+# ============================================================================
+
+from nanobot.cli.triune_commands import triune_app
+
+app.add_typer(triune_app, name="triune")
+
+
 if __name__ == "__main__":
     app()
