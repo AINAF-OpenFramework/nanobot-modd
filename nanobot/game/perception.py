@@ -255,7 +255,7 @@ class ScreenPerceptionSource(PerceptionSource):
         import time
 
         # Placeholder - real implementation would use screen capture
-        logger.debug("game.perception.screen.capture region={self._capture_region}")
+        logger.debug(f"game.perception.screen.capture region={self._capture_region}")
         return {
             "region": self._capture_region,
             "timestamp_ms": int(time.time() * 1000),
