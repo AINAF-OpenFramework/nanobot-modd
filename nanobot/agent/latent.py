@@ -82,17 +82,19 @@ class LatentReasoner:
         )
 
         try:
-            instincts = await asyncio.wait_for(
+            initial_hypotheses = await asyncio.wait_for(
                 self._generate_initial_hypotheses(system_prompt, prompt),
                 timeout=self.timeout_seconds,
             )
-            if not instincts:
+            if not initial_hypotheses:
                 return fallback_state
 
             max_depth = max(int(self.memory_config.get("latent_max_depth", 1)), 1)
             beam_width = max(int(self.memory_config.get("beam_width", 3)), 1)
             clarify_threshold = float(self.memory_config.get("clarify_entropy_threshold", 0.8))
-            hypotheses = sorted(instincts, key=self._score_hypothesis, reverse=True)[:beam_width]
+            hypotheses = sorted(initial_hypotheses, key=self._score_hypothesis, reverse=True)[
+                :beam_width
+            ]
             entropy = self._calculate_entropy(hypotheses)
             for current_depth in range(max_depth):
                 logger.info(
@@ -165,6 +167,7 @@ class LatentReasoner:
         return hypotheses
 
     def _score_hypothesis(self, hypothesis: Hypothesis) -> float:
+        """Centralized hypothesis scoring hook for consistent beam pruning."""
         return max(hypothesis.confidence, 0.0)
 
     def _calculate_entropy(self, hypotheses: list[Hypothesis]) -> float:
