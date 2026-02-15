@@ -450,14 +450,17 @@ class GameLearningController:
 
         # On game end, update ALS with reflection
         if new_state.game_over:
-            # Record game end in learning state
+            # Capture move count before reset
+            moves_this_game = len(self.learning_state.move_history)
+
+            # Record game end in learning state (this clears move_history)
             self.learning_state.record_game_end(result_tag)
 
             # Generate reflection
             stats = self.learning_state.get_stats()
             reflection = (
                 f"Game {self.game_type} ended: {result_tag}. "
-                f"Total moves this game: {len(self.learning_state.move_history)}. "
+                f"Total moves this game: {moves_this_game}. "
                 f"Win rate: {stats['win_rate']:.2%}. "
                 f"Episode: {stats['episode']}."
             )
