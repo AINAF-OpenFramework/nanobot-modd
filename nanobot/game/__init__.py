@@ -21,6 +21,17 @@ from nanobot.game.learning_controller import (
     LearningConfig,
     LearningState,
 )
+from nanobot.game.logger import GameLogger, MoveLogEntry
+from nanobot.game.loop import AutonomousGameLoop, GameLoopConfig, play_game
+from nanobot.game.memory_integration import GameMemoryManager
+from nanobot.game.perception import (
+    APIPerceptionSource,
+    EventStreamPerceptionSource,
+    PerceptionData,
+    PerceptionSource,
+    ScreenPerceptionSource,
+    UnifiedPerceptionAdapter,
+)
 from nanobot.game.reasoning_engine import GameReasoningEngine
 from nanobot.game.state_engine import GameRules, GameStateEngine
 from nanobot.game.strategy_memory import StrategyMemory
@@ -73,4 +84,20 @@ __all__ = [
     "unregister_game_controller",
     "get_game_health_status",
     "extend_health_payload",
+    # Game loop (soul integration)
+    "AutonomousGameLoop",
+    "GameLoopConfig",
+    "play_game",
+    # Game logger
+    "GameLogger",
+    "MoveLogEntry",
+    # Game memory
+    "GameMemoryManager",
+    # Perception
+    "PerceptionSource",
+    "PerceptionData",
+    "APIPerceptionSource",
+    "EventStreamPerceptionSource",
+    "ScreenPerceptionSource",
+    "UnifiedPerceptionAdapter",
 ]
