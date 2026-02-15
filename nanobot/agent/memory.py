@@ -1,6 +1,7 @@
 """Memory system for persistent agent memory."""
 
 import base64
+from collections import deque
 import json
 import logging
 import mimetypes
@@ -16,6 +17,7 @@ logger = logging.getLogger(__name__)
 # Constants
 MAX_CONTENT_PREVIEW_LENGTH = 200  # Maximum length for content preview in retrieval
 INITIAL_CANDIDATE_MULTIPLIER = 2
+ENTANGLEMENT_STRENGTH_THRESHOLD = 0.5
 
 
 class MemoryStore:
@@ -298,15 +300,16 @@ class MemoryStore:
             for node, score in initial_results
         }
         visited: set[str] = set(candidates.keys())
-        queue: list[FractalNode] = [node for node, _ in initial_results]
+        queue = deque(node for node, _ in initial_results)
 
         while queue:
-            node = queue.pop(0)
+            node = queue.popleft()
             base_score = candidates.get(node.id, {}).get("vec_score", 0.0)
             for ent_id, strength in node.entangled_ids.items():
                 if ent_id in visited:
                     continue
-                if strength <= 0.5:
+                # Keep only strong links during one-hop expansion.
+                if strength <= ENTANGLEMENT_STRENGTH_THRESHOLD:
                     continue
                 ent_node = self.get_node_by_id(ent_id)
                 if ent_node:

@@ -32,7 +32,7 @@ class LatentReasoner:
     @retry(
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=1, max=5),
-        retry=retry_if_exception_type(Exception),
+        retry=retry_if_exception_type((asyncio.TimeoutError, ConnectionError, OSError)),
         reraise=True,
     )
     async def _call_llm_with_backoff(self, system_prompt: str, prompt: str) -> str:
@@ -148,5 +148,6 @@ class LatentReasoner:
         user_message: str,
         context_summary: str,
     ) -> list[Hypothesis]:
+        # Placeholder for future stochastic expansion logic.
         _ = (hypotheses, user_message, context_summary)
         return []

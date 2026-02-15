@@ -148,3 +148,19 @@ async def test_latent_reasoning_pipeline():
     assert state.hypotheses[0].confidence == 0.9
     assert state.entropy == 0.0
     assert mock_provider.chat.call_count >= 1
+
+
+@pytest.mark.asyncio
+async def test_latent_reasoning_retries_transient_errors():
+    mock_provider = AsyncMock()
+    mock_provider.chat.side_effect = [
+        ConnectionError("transient failure"),
+        ConnectionError("transient failure"),
+        LLMResponse(content='{"hypotheses":[{"intent":"search","confidence":0.8}]}'),
+    ]
+
+    reasoner = LatentReasoner(provider=mock_provider, model="test-model")
+    state = await reasoner.reason("retry please", context_summary="")
+
+    assert state.hypotheses
+    assert mock_provider.chat.call_count == 3
