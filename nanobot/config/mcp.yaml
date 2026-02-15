@@ -1,0 +1,43 @@
+# MCP Server Configuration
+# 
+# This file defines external MCP servers that Nanobot can connect to
+# and use their tools. Each server exposes a set of tools that become
+# available in Nanobot's tool registry.
+#
+# Example configurations:
+
+mcp_servers:
+  # Example: Filesystem server (requires @modelcontextprotocol/server-filesystem)
+  # - name: filesystem
+  #   type: local
+  #   command: npx
+  #   args:
+  #     - "@modelcontextprotocol/server-filesystem"
+  #     - "/workspace"
+  
+  # Example: Custom Python MCP server
+  # - name: custom_tools
+  #   type: local
+  #   command: python
+  #   args:
+  #     - "-m"
+  #     - "my_mcp_server"
+  #   env:
+  #     API_KEY: "your-api-key"
+  
+  # Example: Chess engine server
+  # - name: chess_engine
+  #   type: local
+  #   command: python
+  #   args:
+  #     - "tools/chess_mcp_server.py"
+
+# Server Configuration Fields:
+# - name: Unique identifier for the server (required)
+# - type: Connection type - "local" or "stdio" (default: "local")
+# - command: Command to start the server (required)
+# - args: List of command-line arguments (optional)
+# - env: Environment variables for the server process (optional)
+#
+# Tools from MCP servers are automatically prefixed with "mcp_<server>_<tool>"
+# to avoid naming conflicts.
