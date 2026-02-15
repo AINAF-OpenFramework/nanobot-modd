@@ -18,7 +18,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from nanobot.agent.tools.registry import ToolRegistry
 from nanobot.mcp.client import MCPClient
-from nanobot.mcp.config_loader import MCPConfigLoader
 from nanobot.mcp.registry import MCPRegistry
 from nanobot.mcp.schemas import MCPServerConfig
 
@@ -86,7 +85,7 @@ async def test_mcp_integration():
     try:
         # Register tools via MCP registry
         await mcp_registry.register_mcp_tools(client)
-        print(f"   ✓ Registered MCP tools in ToolRegistry")
+        print("   ✓ Registered MCP tools in ToolRegistry")
 
         # List registered tools
         tool_names = tool_registry.tool_names

@@ -9,7 +9,6 @@ import pytest
 import yaml
 
 from nanobot.soul.loader import SoulLoader
-from nanobot.soul.schema import Goal, PersonalityTrait, Strategy
 from nanobot.soul.traits import TraitScorer
 
 

@@ -211,7 +211,7 @@ class MultimodalFusionLayer:
         lines.append(f"- Legal Moves: {game_state.get('legal_moves', [])}")
 
         if game_state.get("game_over"):
-            lines.append(f"- Game Over: Yes")
+            lines.append("- Game Over: Yes")
             lines.append(f"- Winner: {game_state.get('winner', 'None')}")
 
         # Fusion info

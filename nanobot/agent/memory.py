@@ -1,11 +1,11 @@
 """Memory system for persistent agent memory."""
 
 import base64
-from collections import deque
 import json
 import logging
 import mimetypes
 import time
+from collections import deque
 from pathlib import Path
 from typing import Any
 
@@ -40,30 +40,30 @@ class MemoryStore:
         self.workspace = workspace
         self.memory_dir = ensure_dir(workspace / "memory")
         self.config = config or {}
-        
+
         # Legacy files (preserved for backward compatibility)
         self.memory_file = self.memory_dir / "MEMORY.md"
         self.history_file = self.memory_dir / "HISTORY.md"
-        
+
         # Triune Memory: YAML paths for token-efficient storage
         self.memory_yaml = self.memory_dir / "MEMORY.yaml"
         self.history_yaml = self.memory_dir / "HISTORY.yaml"
-        
+
         # --- NEW: Fractal Architecture ---
         self.archives_dir = ensure_dir(self.memory_dir / "archives")
         self.index_file = self.memory_dir / "fractal_index.json"
         self.als_file = self.memory_dir / "ALS.json"
-        
+
         # mem0 provider (optional)
         self._mem0_provider = None
         self._init_provider()
-        
+
         self._init_fractal_structure()
-    
+
     def _init_provider(self) -> None:
         """Initialize memory provider based on configuration."""
         provider_type = self.config.get("provider", "local")
-        
+
         if provider_type == "mem0":
             try:
                 from nanobot.agent.mem0_provider import Mem0Provider
@@ -79,7 +79,7 @@ class MemoryStore:
             except Exception as e:
                 logger.error(f"Failed to initialize mem0 provider: {e}")
                 self._mem0_provider = None
-    
+
     def _init_fractal_structure(self) -> None:
         """Initialize index and ALS if they don't exist."""
         if not self.index_file.exists():
@@ -103,12 +103,12 @@ class MemoryStore:
                 return self._yaml_data_to_str(data)
             except Exception as e:
                 logger.warning(f"Failed to load MEMORY.yaml: {e}")
-        
+
         # Fall back to MD (backward compatibility)
         if self.memory_file.exists():
             return self.memory_file.read_text(encoding="utf-8")
         return ""
-    
+
     def _yaml_data_to_str(self, data: dict[str, Any]) -> str:
         """
         Convert YAML memory data to string format.
@@ -116,10 +116,10 @@ class MemoryStore:
         Uses shared formatting from translator module.
         """
         from nanobot.utils.translator import yaml_data_to_context
-        
+
         if not isinstance(data, dict):
             return str(data)
-        
+
         return yaml_data_to_context(data)
 
     def write_long_term(self, content: str) -> None:
@@ -132,9 +132,9 @@ class MemoryStore:
     def get_memory_context(self) -> str:
         long_term = self.read_long_term()
         return f"## Long-term Memory\n{long_term}" if long_term else ""
-    
+
     # --- NEW METHODS for Fractal Memory ---
-    
+
     def save_fractal_node(
         self,
         content: str,
@@ -174,7 +174,7 @@ class MemoryStore:
                     metadata["parent_id"] = parent_id
                 if mime_type:
                     metadata["mime_type"] = mime_type
-                
+
                 node = self._mem0_provider.add_memory(
                     content=content,
                     tags=tags,
@@ -182,16 +182,16 @@ class MemoryStore:
                     content_type=content_type,
                     metadata=metadata,
                 )
-                
+
                 # Update binary data if provided
                 if binary_data:
                     node.binary_data = binary_data
                     node.mime_type = mime_type
-                
+
                 # Update language if provided
                 if language:
                     node.language = language
-                
+
                 # Update parent relationship
                 if parent_id:
                     node.parent_id = parent_id
@@ -200,20 +200,20 @@ class MemoryStore:
                         parent.children_ids.append(node.id)
                         node.depth = parent.depth + 1
                         self._update_node(parent)
-                
+
                 # Save with updated fields
                 archive_path = self.archives_dir / f"lesson_{node.id}.json"
                 archive_path.write_text(node.model_dump_json(indent=2), encoding="utf-8")
-                
+
                 # Update index
                 self._update_index(node)
-                
+
                 return node
-                
+
             except Exception as e:
                 logger.error(f"Failed to use mem0 provider: {e}")
                 # Fall through to local storage
-        
+
         # Local storage implementation
         node = FractalNode(
             content=content,
@@ -225,7 +225,7 @@ class MemoryStore:
             mime_type=mime_type,
             parent_id=parent_id,
         )
-        
+
         # Handle hierarchical relationship
         if parent_id:
             parent = self.get_node_by_id(parent_id)
@@ -233,27 +233,27 @@ class MemoryStore:
                 parent.children_ids.append(node.id)
                 node.depth = parent.depth + 1
                 self._update_node(parent)
-        
+
         # 1. Save full archive (Lesson)
         archive_path = self.archives_dir / f"lesson_{node.id}.json"
         archive_path.write_text(node.model_dump_json(indent=2), encoding="utf-8")
-        
+
         # 2. Update Index
         self._update_index(node)
-        
+
         logger.info(f"Saved Fractal Node: {node.id} with tags: {tags}")
         return node
-    
+
     def _update_index(self, node: FractalNode) -> None:
         """Update the index with a new or modified node."""
         try:
             index_data = json.loads(self.index_file.read_text(encoding="utf-8"))
         except Exception:
             index_data = []
-        
+
         # Remove existing entry if updating
         index_data = [entry for entry in index_data if entry.get("id") != node.id]
-        
+
         # Add new entry
         index_entry = {
             "id": node.id,
@@ -266,7 +266,7 @@ class MemoryStore:
         }
         index_data.append(index_entry)
         self.index_file.write_text(json.dumps(index_data, indent=2), encoding="utf-8")
-    
+
     def _update_node(self, node: FractalNode) -> None:
         """Update an existing node."""
         archive_path = self.archives_dir / f"lesson_{node.id}.json"
@@ -398,7 +398,7 @@ class MemoryStore:
 
         final_scores.sort(key=lambda x: x[1], reverse=True)
         return [node for node, _ in final_scores[:top_k]]
-    
+
     def retrieve_relevant_nodes(self, query: str, k: int = 5) -> str:
         """
         Token-efficient retrieval using semantic search (mem0) or keyword matching (local).
@@ -418,14 +418,14 @@ class MemoryStore:
             except Exception as e:
                 logger.error(f"mem0 search failed: {e}")
                 # Fall through to local search
-        
+
         # Local keyword-based search
         try:
             index_data = json.loads(self.index_file.read_text(encoding="utf-8"))
-            
+
             # Simple scoring: count overlapping words between query and tags/summary
             query_words = set(query.lower().split())
-            
+
             scored_nodes = []
             for entry in index_data:
                 score = 0
@@ -436,19 +436,19 @@ class MemoryStore:
                 # Check summary (lower weight)
                 summary_words = set(entry.get("summary", "").lower().split())
                 score += len(query_words.intersection(summary_words))
-                
+
                 scored_nodes.append((score, entry))
-            
+
             # Sort by score descending and take top K
             scored_nodes.sort(key=lambda x: x[0], reverse=True)
             top_nodes = scored_nodes[:k]
-            
+
             # Load full content for top K nodes
             nodes = []
             for score, entry in top_nodes:
                 if score == 0:
                     continue  # Skip irrelevant nodes
-                
+
                 archive_path = self.archives_dir / f"lesson_{entry['id']}.json"
                 if archive_path.exists():
                     try:
@@ -458,23 +458,23 @@ class MemoryStore:
                         nodes.append(node)
                     except Exception as e:
                         logger.warning(f"Could not load node {entry['id']}: {e}")
-            
+
             return self._format_nodes(nodes)
-            
+
         except Exception as e:
             logger.error(f"Error retrieving nodes: {e}")
             return ""
-    
+
     def _format_nodes(self, nodes: list[FractalNode]) -> str:
         """Format nodes for context display."""
         if not nodes:
             return ""
-        
+
         context_str = "## Relevant Resources (Fractal Memory)\n"
         for node in nodes:
             timestamp_str = node.timestamp.strftime('%Y-%m-%d')
             tags_str = ', '.join(node.tags)
-            
+
             # Format based on content type
             type_prefix = ""
             if node.content_type == ContentType.CODE:
@@ -483,17 +483,17 @@ class MemoryStore:
                 type_prefix = "[image] "
             elif node.content_type == ContentType.MIXED:
                 type_prefix = "[mixed] "
-            
+
             # Show hierarchy depth
             indent = "  " * node.depth
-            
+
             context_str += f"{indent}- **{type_prefix}[{timestamp_str}] {tags_str}**: {node.content[:MAX_CONTENT_PREVIEW_LENGTH]}"
             if len(node.content) > MAX_CONTENT_PREVIEW_LENGTH:
                 context_str += "..."
             context_str += "\n"
-        
+
         return context_str
-    
+
     def get_als_context(self) -> str:
         """
         Returns the Active Learning State summary for context.
@@ -514,7 +514,7 @@ class MemoryStore:
             except Exception as e:
                 logger.warning(f"Could not load ALS: {e}")
         return ""
-    
+
     def update_als(
         self,
         focus: str | None = None,
@@ -537,7 +537,7 @@ class MemoryStore:
                 )
             else:
                 als = ActiveLearningState()
-            
+
             # Update fields
             if focus:
                 als.current_focus = focus
@@ -547,19 +547,19 @@ class MemoryStore:
                 als.recent_reflections = als.recent_reflections[-10:]
             if evolution_stage is not None:
                 als.evolution_stage = evolution_stage
-            
+
             from datetime import datetime
             als.last_updated = datetime.now()
-            
+
             # Save
             self.als_file.write_text(als.model_dump_json(indent=2), encoding="utf-8")
             logger.info("Updated Active Learning State")
-            
+
         except Exception as e:
             logger.error(f"Error updating ALS: {e}")
-    
+
     # --- NEW: Hierarchical Navigation Methods ---
-    
+
     def get_node_by_id(self, node_id: str) -> FractalNode | None:
         """
         Get a specific node by ID.
@@ -572,7 +572,7 @@ class MemoryStore:
         """
         if self._mem0_provider:
             return self._mem0_provider.get_memory_by_id(node_id)
-        
+
         archive_path = self.archives_dir / f"lesson_{node_id}.json"
         if archive_path.exists():
             try:
@@ -582,7 +582,7 @@ class MemoryStore:
             except Exception as e:
                 logger.error(f"Failed to load node {node_id}: {e}")
         return None
-    
+
     def get_children(self, node_id: str) -> list[FractalNode]:
         """
         Get all child nodes of a given node.
@@ -596,15 +596,15 @@ class MemoryStore:
         parent = self.get_node_by_id(node_id)
         if not parent:
             return []
-        
+
         children = []
         for child_id in parent.children_ids:
             child = self.get_node_by_id(child_id)
             if child:
                 children.append(child)
-        
+
         return children
-    
+
     def get_parent(self, node_id: str) -> FractalNode | None:
         """
         Get the parent node of a given node.
@@ -618,9 +618,9 @@ class MemoryStore:
         node = self.get_node_by_id(node_id)
         if not node or not node.parent_id:
             return None
-        
+
         return self.get_node_by_id(node.parent_id)
-    
+
     def get_hierarchy_tree(self, root_id: str, max_depth: int = 3) -> dict:
         """
         Get a hierarchical tree structure starting from a root node.
@@ -635,11 +635,11 @@ class MemoryStore:
         def build_tree(node_id: str, current_depth: int) -> dict | None:
             if current_depth > max_depth:
                 return None
-            
+
             node = self.get_node_by_id(node_id)
             if not node:
                 return None
-            
+
             tree = {
                 "id": node.id,
                 "summary": node.context_summary,
@@ -647,18 +647,18 @@ class MemoryStore:
                 "content_type": node.content_type.value,
                 "children": []
             }
-            
+
             for child_id in node.children_ids:
                 child_tree = build_tree(child_id, current_depth + 1)
                 if child_tree:
                     tree["children"].append(child_tree)
-            
+
             return tree
-        
+
         return build_tree(root_id, 0) or {}
-    
+
     # --- NEW: Multi-modal Support Methods ---
-    
+
     def save_code_snippet(
         self,
         code: str,
@@ -688,7 +688,7 @@ class MemoryStore:
             language=language,
             parent_id=parent_id,
         )
-    
+
     def save_image(
         self,
         image_path: str | Path,
@@ -711,19 +711,19 @@ class MemoryStore:
             The created FractalNode
         """
         image_path = Path(image_path)
-        
+
         # Read and encode image
         try:
             with open(image_path, "rb") as f:
                 image_data = f.read()
-            
+
             binary_data = base64.b64encode(image_data).decode("utf-8")
-            
+
             # Detect MIME type
             mime_type, _ = mimetypes.guess_type(str(image_path))
             if not mime_type:
                 mime_type = "image/png"  # Default
-            
+
             return self.save_fractal_node(
                 content=description or f"Image: {image_path.name}",
                 tags=tags + ["image"],
@@ -733,11 +733,11 @@ class MemoryStore:
                 mime_type=mime_type,
                 parent_id=parent_id,
             )
-            
+
         except Exception as e:
             logger.error(f"Failed to save image: {e}")
             raise
-    
+
     def get_image_data(self, node_id: str) -> tuple[bytes, str] | None:
         """
         Get decoded image data from a node.
@@ -751,17 +751,17 @@ class MemoryStore:
         node = self.get_node_by_id(node_id)
         if not node or node.content_type != ContentType.IMAGE:
             return None
-        
+
         if not node.binary_data:
             return None
-        
+
         try:
             image_bytes = base64.b64decode(node.binary_data)
             return (image_bytes, node.mime_type or "image/png")
         except Exception as e:
             logger.error(f"Failed to decode image: {e}")
             return None
-    
+
     def search_by_type(
         self,
         content_type: ContentType,
@@ -784,7 +784,7 @@ class MemoryStore:
             if tags:
                 filters["tags"] = tags
             return self._mem0_provider.get_all_memories(filters=filters)[:limit]
-        
+
         # Local search
         matches = []
         for archive_path in self.archives_dir.glob("lesson_*.json"):
@@ -792,21 +792,21 @@ class MemoryStore:
                 node = FractalNode.model_validate_json(
                     archive_path.read_text(encoding="utf-8")
                 )
-                
+
                 # Check content type
                 if node.content_type != content_type:
                     continue
-                
+
                 # Check tags if provided
                 if tags and not any(tag in node.tags for tag in tags):
                     continue
-                
+
                 matches.append(node)
-                
+
                 if len(matches) >= limit:
                     break
-                    
+
             except Exception as e:
                 logger.warning(f"Failed to load node from {archive_path}: {e}")
-        
+
         return matches

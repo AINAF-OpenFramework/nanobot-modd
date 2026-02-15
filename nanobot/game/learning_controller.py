@@ -11,7 +11,7 @@ from loguru import logger
 
 from nanobot.agent.memory import MemoryStore
 from nanobot.game.environment import ActionResult, GameEnvironmentAdapter, GameState
-from nanobot.game.fusion import FusionConfig, FusedEmbedding, MultimodalFusionLayer
+from nanobot.game.fusion import FusionConfig, MultimodalFusionLayer
 from nanobot.game.health import register_game_controller, unregister_game_controller
 from nanobot.game.reasoning_engine import GameReasoningEngine
 from nanobot.game.state_engine import GameRules, GameStateEngine

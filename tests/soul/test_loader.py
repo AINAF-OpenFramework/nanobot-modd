@@ -9,7 +9,7 @@ import pytest
 import yaml
 
 from nanobot.soul.loader import SoulLoader
-from nanobot.soul.schema import GameConfig, Goal, PersonalityTrait, SoulConfig, Strategy
+from nanobot.soul.schema import SoulConfig
 
 
 class TestSoulLoader:
