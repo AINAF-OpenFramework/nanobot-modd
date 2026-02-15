@@ -905,6 +905,88 @@ def cron_run(
 
 
 # ============================================================================
+# Translate Commands (Triune Memory)
+# ============================================================================
+
+
+@app.command()
+def translate(
+    direction: str = typer.Option(
+        "md-to-yaml",
+        "--direction", "-d",
+        help="Sync direction: md-to-yaml, yaml-to-md, or bidirectional"
+    ),
+    watch: bool = typer.Option(
+        False,
+        "--watch", "-w",
+        help="Watch for file changes and auto-sync"
+    ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run", "-n",
+        help="Show what would be synced without making changes"
+    ),
+):
+    """
+    Sync .md and .yaml files for Triune Memory.
+    
+    The Triune Memory system maintains both human-readable .md files and 
+    token-efficient .yaml files. This command synchronizes them.
+    
+    Examples:
+        nanobot translate                    # Sync md to yaml (default)
+        nanobot translate -d yaml-to-md      # Sync yaml to md
+        nanobot translate -d bidirectional   # Sync both directions
+        nanobot translate --dry-run          # Preview what would change
+    """
+    from nanobot.config.loader import load_config
+    from nanobot.utils.translator import TranslatorConfig, sync_all
+    
+    config = load_config()
+    workspace = config.workspace_path
+    
+    if not workspace.exists():
+        console.print(f"[red]Workspace not found: {workspace}[/red]")
+        console.print("Run [cyan]nanobot onboard[/cyan] first.")
+        raise typer.Exit(1)
+    
+    # Normalize direction
+    direction_normalized = direction.replace("-", "_")
+    
+    if dry_run:
+        console.print(f"[yellow]Dry run mode - no changes will be made[/yellow]\n")
+    
+    console.print(f"Syncing workspace: {workspace}")
+    console.print(f"Direction: {direction}\n")
+    
+    translator_config = TranslatorConfig()
+    result = sync_all(
+        workspace, 
+        direction=direction_normalized, 
+        config=translator_config,
+        dry_run=dry_run
+    )
+    
+    # Display results
+    synced = result["synced"]
+    skipped = result["skipped"]
+    errors = result["errors"]
+    
+    if synced > 0:
+        console.print(f"[green]✓[/green] Synced: {synced} file(s)")
+    if skipped > 0:
+        console.print(f"[dim]Skipped: {skipped} file(s) (up to date or excluded)[/dim]")
+    if errors > 0:
+        console.print(f"[red]✗[/red] Errors: {errors} file(s)")
+    
+    if synced == 0 and errors == 0:
+        console.print("[green]All files are up to date.[/green]")
+    
+    if watch:
+        console.print("\n[yellow]Watch mode not yet implemented. Run translate manually for now.[/yellow]")
+
+
+# ============================================================================
 # Status Commands
 # ============================================================================
 
