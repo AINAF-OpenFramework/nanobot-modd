@@ -213,7 +213,7 @@ def run_demo(num_positions: int = 3):
 
         # Compare positions
         logger.info("\nPosition Scores (material count):")
-        for i, (name, analysis) in enumerate(zip(position_names[:num_positions], analyses)):
+        for name, analysis in zip(position_names[:num_positions], analyses):
             logger.info(f"  {name}: {analysis['score']:+.1f}")
 
         # Test strategy retrieval

@@ -134,12 +134,14 @@ class TestStrategyMemoryEntanglement:
 
     def test_strategy_retrieval_latency(self, strategy_memory, tictactoe_rules):
         """Test strategy retrieval latency (<200ms target)."""
-        # Store some strategies first
+        # Store some strategies first with varied board states
         num_strategies = 50
         for i in range(num_strategies):
+            # Create varied board states with X's in different positions
             state = {
                 "board": [
-                    ["X" if j == i % 3 else "" for j in range(3)] for _ in range(3)
+                    ["X" if (row * 3 + col) % 5 == i % 5 else "" for col in range(3)]
+                    for row in range(3)
                 ],
                 "current_player": "O",
             }

@@ -115,6 +115,14 @@ class TicTacToeRules:
 
         return new_state
 
+    def _is_board_full(self, board: list[list[str]]) -> bool:
+        """Check if the board is completely filled."""
+        for row in range(self.board_size):
+            for col in range(self.board_size):
+                if board[row][col] == "":
+                    return False
+        return True
+
     def check_win_conditions(self, state: dict[str, Any]) -> dict[str, Any]:
         """
         Check if the game has ended and determine the winner.
@@ -188,7 +196,7 @@ class TicTacToeRules:
             }
 
         # Check for draw (board full)
-        if all(board[row][col] != "" for row in range(self.board_size) for col in range(self.board_size)):
+        if self._is_board_full(board):
             logger.info("game.rules.tictactoe.check_win_conditions draw")
             return {"game_over": True, "winner": None, "status": "Draw"}
 

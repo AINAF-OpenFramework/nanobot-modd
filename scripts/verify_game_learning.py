@@ -214,7 +214,7 @@ def verify_visual_encoders() -> bool:
 
         assert embedding.dimensions == 128, f"Expected 128D, got {embedding.dimensions}D"
         assert embedding.confidence > 0, "Confidence should be > 0"
-        logger.info("✅ TicTacToe board encoding: 128D, confidence={:.2f}".format(embedding.confidence))
+        logger.info(f"✅ TicTacToe board encoding: 128D, confidence={embedding.confidence:.2f}")
 
         # Test on chess boards
         encoder_chess = SimpleGridEncoder(embedding_dim=256, grid_size=(8, 8))
@@ -222,7 +222,7 @@ def verify_visual_encoders() -> bool:
         embedding_chess = encoder_chess.encode(chess_image)
 
         assert embedding_chess.dimensions == 256, f"Expected 256D, got {embedding_chess.dimensions}D"
-        logger.info("✅ Chess board encoding: 256D, confidence={:.2f}".format(embedding_chess.confidence))
+        logger.info(f"✅ Chess board encoding: 256D, confidence={embedding_chess.confidence:.2f}")
 
         # Test consistency
         embedding2 = encoder.encode(ttt_image)

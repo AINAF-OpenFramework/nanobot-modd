@@ -14,6 +14,7 @@ Usage:
 """
 
 import argparse
+import json
 import random
 import tempfile
 from pathlib import Path
@@ -139,7 +140,6 @@ def select_move_with_strategy(
         # Extract moves from strategies and pick one that's legal
         for node in relevant_strategies:
             try:
-                import json
                 strategy_data = json.loads(node.content)
                 suggested_move = strategy_data.get("move")
                 if suggested_move in legal_moves:

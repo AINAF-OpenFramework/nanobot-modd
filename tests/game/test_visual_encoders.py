@@ -22,6 +22,13 @@ except ImportError:
     PIL_AVAILABLE = False
 
 
+def _get_board_cell(board: list, row: int, col: int) -> str:
+    """Helper to safely get a board cell value."""
+    if row < len(board) and col < len(board[row]):
+        return board[row][col]
+    return ""
+
+
 def create_tictactoe_board_image(state: dict) -> np.ndarray:
     """
     Create a synthetic image of a TicTacToe board.
@@ -49,7 +56,7 @@ def create_tictactoe_board_image(state: dict) -> np.ndarray:
         # Draw pieces (simple colored blocks)
         for row in range(3):
             for col in range(3):
-                piece = board[row][col] if row < len(board) and col < len(board[row]) else ""
+                piece = _get_board_cell(board, row, col)
                 if piece == "X":
                     # Red X
                     y1, y2 = row * cell_size + 20, (row + 1) * cell_size - 20
@@ -80,7 +87,7 @@ def create_tictactoe_board_image(state: dict) -> np.ndarray:
     # Draw pieces
     for row in range(3):
         for col in range(3):
-            piece = board[row][col] if row < len(board) and col < len(board[row]) else ""
+            piece = _get_board_cell(board, row, col)
             if piece:
                 y = row * cell_size + cell_size // 2
                 x = col * cell_size + cell_size // 2
