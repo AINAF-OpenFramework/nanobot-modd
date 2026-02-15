@@ -53,7 +53,11 @@ class MCPClient:
                 env.update(self.config.env)
 
             # Build command
-            cmd_parts = self.config.command.split()
+            # Don't split command if it's a path with spaces - use as-is
+            if " " in self.config.command and not self.config.command.startswith("python"):
+                cmd_parts = [self.config.command]
+            else:
+                cmd_parts = self.config.command.split()
             if self.config.args:
                 cmd_parts.extend(self.config.args)
 

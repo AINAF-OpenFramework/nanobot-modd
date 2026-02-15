@@ -59,7 +59,9 @@ def test_mcp_tool_schema_validation():
         input_schema={"type": "object"},
     )
     assert schema.name == "valid_tool"
-    
+    assert schema.description == "Valid tool"
+    assert schema.input_schema == {"type": "object"}
+
     # Invalid: empty name
     with pytest.raises(ValueError, match="name cannot be empty"):
         MCPToolSchema(
@@ -67,7 +69,7 @@ def test_mcp_tool_schema_validation():
             description="Test",
             input_schema={},
         )
-    
+
     # Invalid: non-dict schema
     with pytest.raises(ValueError, match="must be a dictionary"):
         MCPToolSchema(

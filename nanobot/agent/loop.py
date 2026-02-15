@@ -133,12 +133,13 @@ class AgentLoop:
         self.mcp_registry = None
         self._mcp_configs = None
         if self.workspace:
+            # Look for MCP config in workspace
             mcp_config_path = self.workspace / "nanobot" / "config" / "mcp.yaml"
             if mcp_config_path.exists():
                 try:
                     from nanobot.mcp.config_loader import MCPConfigLoader
                     from nanobot.mcp.registry import MCPRegistry
-                    
+
                     self._mcp_configs = MCPConfigLoader.load(mcp_config_path)
                     if self._mcp_configs:
                         self.mcp_registry = MCPRegistry(self.tools)
