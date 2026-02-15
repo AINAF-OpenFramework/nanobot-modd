@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import time
 from typing import Any
 
 from loguru import logger
@@ -220,8 +221,6 @@ class GameActionExecutor:
 
     async def _apply_rate_limit(self) -> None:
         """Apply rate limiting between executions."""
-        import time
-
         current_time = time.time()
         time_since_last = current_time - self._last_execution_time
 

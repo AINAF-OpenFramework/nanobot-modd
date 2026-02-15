@@ -102,9 +102,12 @@ class TestTicTacToeRules:
         assert rules.get_next_player({"current_player": "X"}) == "O"
         assert rules.get_next_player({"current_player": "O"}) == "X"
 
-    def test_get_next_player_defaults_to_x(self, rules):
-        """Test default next player is O (assumes X started)."""
-        # When no current player specified, it defaults to X -> next is O
+    def test_get_next_player_defaults_when_missing(self, rules):
+        """Test fallback behavior when current_player is missing from state.
+
+        When current_player is not in state, get_next_player returns 'O'
+        because the default current_player is 'X'.
+        """
         assert rules.get_next_player({}) == "O"
 
 
@@ -146,8 +149,7 @@ class TestCreateTictactoeEngine:
         engine.apply_move("6", player="X")
         # O blocks
         engine.apply_move("3", player="O")
-        # X wins with middle row
-        # Wait, let's check what's legal
+        # Verify game progressed through 6 turns
         state = engine.get_state()
         assert state["turn"] == 6
 

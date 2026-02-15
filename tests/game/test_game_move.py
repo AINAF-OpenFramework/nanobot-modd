@@ -123,21 +123,28 @@ class TestGameMoveTool:
 
     def test_set_legal_moves_provider(self, tool):
         """Test set_legal_moves_provider stores provider."""
-        provider = lambda: ["a", "b"]
+        def provider():
+            return ["a", "b"]
         tool.set_legal_moves_provider(provider)
         assert tool._get_legal_moves() == ["a", "b"]
 
     def test_legal_moves_provider_takes_precedence(self, tool):
         """Test provider takes precedence over cached moves."""
         tool.set_legal_moves(["cached1", "cached2"])
-        tool.set_legal_moves_provider(lambda: ["provider1", "provider2"])
+
+        def provider():
+            return ["provider1", "provider2"]
+        tool.set_legal_moves_provider(provider)
 
         assert tool._get_legal_moves() == ["provider1", "provider2"]
 
     def test_legal_moves_provider_error_falls_back(self, tool):
         """Test fallback to cached moves on provider error."""
         tool.set_legal_moves(["fallback"])
-        tool.set_legal_moves_provider(lambda: (_ for _ in ()).throw(Exception("fail")))
+
+        def failing_provider():
+            raise Exception("fail")
+        tool.set_legal_moves_provider(failing_provider)
 
         # Should fallback to cached moves (not crash)
         moves = tool._get_legal_moves()
