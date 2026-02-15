@@ -2,6 +2,9 @@ name: CI
 
 on: [push, pull_request]
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -15,7 +18,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - run: pip install -e .[dev]
       - run: ruff check nanobot/
-      - run: pytest tests/ --cov=nanobot --cov-report=xml --cov-fail-under=80
+      - run: pytest tests/ --cov=nanobot/middleware --cov=nanobot.config.keyring --cov=nanobot/telemetry --cov=nanobot.agent.embeddings --cov-report=xml --cov-fail-under=80
       - uses: codecov/codecov-action@v3
 
   docker:

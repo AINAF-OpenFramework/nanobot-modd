@@ -64,11 +64,7 @@ class LatentReasoner:
         return ""
 
     async def reason(self, user_message: str, context_summary: str) -> SuperpositionalState:
-        fallback_state = SuperpositionalState(
-            hypotheses=[],
-            entropy=0.0,
-            strategic_direction="Proceed with standard processing due to reasoning timeout/error.",
-        )
+        fallback_state = self._fallback_state()
         try:
             return await self.circuit_breaker.call(
                 self._reason_internal,
@@ -85,11 +81,7 @@ class LatentReasoner:
             return fallback_state
 
     async def _reason_internal(self, user_message: str, context_summary: str) -> SuperpositionalState:
-        fallback_state = SuperpositionalState(
-            hypotheses=[],
-            entropy=0.0,
-            strategic_direction="Proceed with standard processing due to reasoning timeout/error.",
-        )
+        fallback_state = self._fallback_state()
 
         system_prompt = (
             "You are the subconscious reasoning engine of an AI agent. "
@@ -152,7 +144,7 @@ class LatentReasoner:
                 or "Proceed with standard processing.",
             )
         except (asyncio.TimeoutError, JSONDecodeError, ValidationError) as exc:
-            logger.debug(f"Latent reasoning fallback triggered: {exc}")
+            logger.debug(f"Latent reasoning error, propagating exception: {exc}")
             raise
         except Exception as exc:
             logger.warning(f"Unexpected latent reasoning error: {exc}")
@@ -163,6 +155,14 @@ class LatentReasoner:
     ) -> list[Hypothesis]:
         payload = await self._call_llm_with_backoff(system_prompt, prompt)
         return self._parse_hypotheses(payload)
+
+    @staticmethod
+    def _fallback_state() -> SuperpositionalState:
+        return SuperpositionalState(
+            hypotheses=[],
+            entropy=0.0,
+            strategic_direction="Proceed with standard processing due to reasoning timeout/error.",
+        )
 
     def _parse_hypotheses(self, payload: str) -> list[Hypothesis]:
         if payload.startswith("```"):

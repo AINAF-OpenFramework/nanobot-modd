@@ -108,7 +108,10 @@ class AgentLoop:
         )
         
         self._running = False
-        self._consolidation_queue: asyncio.Queue = asyncio.Queue()
+        # consolidation_queue_size bounds background memory-consolidation backlog.
+        self._consolidation_queue: asyncio.Queue = asyncio.Queue(
+            maxsize=int(self.memory_config.get("consolidation_queue_size", 128))
+        )
         self._consolidation_task: asyncio.Task | None = None
         rate_limit_config = rate_limit_config or {}
         self.rate_limiter = RateLimiter(
@@ -121,7 +124,7 @@ class AgentLoop:
         telemetry_config = telemetry_config or {}
         self.metrics_exporter = MetricsExporter(
             port=int(telemetry_config.get("port", 9090)),
-            enabled=bool(telemetry_config.get("enabled", False)),
+            enabled=bool(telemetry_config.get("enabled", True)),
         )
         self._telemetry_started = False
         self._register_default_tools()
@@ -248,7 +251,10 @@ class AgentLoop:
         # Consolidate memory before processing if session is too large
         if len(session.messages) > self.memory_window:
             if self._running:
-                self._consolidation_queue.put_nowait(session)
+                try:
+                    self._consolidation_queue.put_nowait(session)
+                except asyncio.QueueFull:
+                    logger.warning("Memory consolidation queue is full; skipping enqueue")
             else:
                 await self._consolidate_memory(session)
         

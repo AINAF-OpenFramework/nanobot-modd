@@ -8,7 +8,7 @@ from loguru import logger
 
 try:
     import keyring
-except Exception:  # pragma: no cover - optional dependency import failure
+except ImportError:  # pragma: no cover - optional dependency import failure
     keyring = None
 
 
@@ -34,7 +34,7 @@ class KeyringManager:
         try:
             keyring.set_password(self.SERVICE_NAME, provider, api_key)
         except Exception as exc:
-            logger.error(f"Keyring error: {exc}")
+            logger.error(f"Failed to set keyring password for provider {provider}: {exc}")
 
     def get_key(self, provider: str) -> str:
         if not self.use_keyring or keyring is None:
@@ -45,7 +45,7 @@ class KeyringManager:
             return ""
 
 
-def load_api_key(provider: str, config_key: str, km: KeyringManager) -> str:
+def load_api_key(provider: str, config_api_key: str, km: KeyringManager) -> str:
     """Load with priority: env var > keyring > plain text."""
     env_key = os.getenv(f"{provider.upper()}_API_KEY")
     if env_key:
@@ -55,4 +55,4 @@ def load_api_key(provider: str, config_key: str, km: KeyringManager) -> str:
     if keyring_key:
         return keyring_key
 
-    return config_key
+    return config_api_key
