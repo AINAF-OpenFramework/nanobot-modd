@@ -217,64 +217,20 @@ To recall past events, grep {workspace_path}/memory/HISTORY.md"""
         """
         Convert YAML data to context string for LLM.
         
+        Uses shared formatting from translator module.
+        
         Args:
             data: YAML data dictionary
             
         Returns:
             Formatted context string
         """
+        from nanobot.utils.translator import yaml_data_to_context
+        
         if not isinstance(data, dict):
             return str(data)
         
-        parts: list[str] = []
-        
-        # Handle title
-        if "title" in data:
-            parts.append(f"# {data['title']}")
-        
-        # Handle sections
-        for section in data.get("sections", []):
-            parts.append(self._format_section_for_context(section))
-        
-        return "\n\n".join(parts)
-    
-    def _format_section_for_context(self, section: dict[str, Any], level: int = 1) -> str:
-        """Format a section for context display."""
-        parts: list[str] = []
-        
-        title = section.get("title", "")
-        if title:
-            header = "#" * (level + 1)
-            parts.append(f"{header} {title}")
-        
-        content = section.get("content", "")
-        if content:
-            parts.append(content)
-        
-        # Include code blocks
-        for cb in section.get("code_blocks", []):
-            lang = cb.get("language", "")
-            code = cb.get("content", "")
-            parts.append(f"```{lang}\n{code}\n```")
-        
-        # Include lists
-        for lst in section.get("lists", []):
-            list_type = lst.get("type", "bullet")
-            items = lst.get("items", [])
-            for i, item in enumerate(items):
-                if list_type == "checkbox" and isinstance(item, dict):
-                    checked = "x" if item.get("checked") else " "
-                    parts.append(f"- [{checked}] {item.get('text', '')}")
-                elif list_type == "numbered":
-                    parts.append(f"{i + 1}. {item}")
-                else:
-                    parts.append(f"- {item}")
-        
-        # Handle subsections
-        for sub in section.get("subsections", []):
-            parts.append(self._format_section_for_context(sub, level + 1))
-        
-        return "\n".join(parts)
+        return yaml_data_to_context(data)
     
     def build_messages(
         self,
