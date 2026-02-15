@@ -128,6 +128,23 @@ class AgentLoop:
         )
         self._telemetry_started = False
         self._register_default_tools()
+        
+        # Initialize MCP integration
+        self.mcp_registry = None
+        self._mcp_configs = None
+        if self.workspace:
+            mcp_config_path = self.workspace / "nanobot" / "config" / "mcp.yaml"
+            if mcp_config_path.exists():
+                try:
+                    from nanobot.mcp.config_loader import MCPConfigLoader
+                    from nanobot.mcp.registry import MCPRegistry
+                    
+                    self._mcp_configs = MCPConfigLoader.load(mcp_config_path)
+                    if self._mcp_configs:
+                        self.mcp_registry = MCPRegistry(self.tools)
+                        logger.info(f"MCP integration initialized with {len(self._mcp_configs)} servers")
+                except Exception as e:
+                    logger.warning(f"MCP initialization failed: {e}")
     
     def _register_default_tools(self) -> None:
         """Register the default set of tools."""
@@ -172,6 +189,15 @@ class AgentLoop:
                 logger.warning(f"Metrics exporter failed to start: {exc}")
         if self._consolidation_task is None or self._consolidation_task.done():
             self._consolidation_task = asyncio.create_task(self._consolidation_worker())
+        
+        # Connect MCP clients
+        if self.mcp_registry and self._mcp_configs:
+            for config in self._mcp_configs:
+                try:
+                    await self.mcp_registry.add_client(config)
+                except Exception as e:
+                    logger.warning(f"Failed to connect MCP server '{config.name}': {e}")
+        
         logger.info("Agent loop started")
         
         while self._running:
@@ -197,6 +223,13 @@ class AgentLoop:
                     ))
             except asyncio.TimeoutError:
                 continue
+        
+        # Cleanup: Disconnect MCP clients
+        if self.mcp_registry:
+            try:
+                await self.mcp_registry.disconnect_all()
+            except Exception as e:
+                logger.warning(f"Error disconnecting MCP clients: {e}")
     
     def stop(self) -> None:
         """Stop the agent loop."""
