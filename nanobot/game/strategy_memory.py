@@ -288,3 +288,84 @@ class StrategyMemory:
             query_parts.append(f"turn:{state['turn']}")
 
         return " ".join(query_parts)
+
+    def record_move(self, game_id: str, move: str, state: dict[str, Any] | None = None) -> bool:
+        """
+        Store a move in memory for a specific game.
+        
+        Args:
+            game_id: Unique identifier for the game
+            move: Move notation (e.g., "e2e4")
+            state: Optional game state when move was made
+            
+        Returns:
+            True if move was recorded successfully
+        """
+        # Build content with game context
+        move_data = {
+            "game_id": game_id,
+            "move": move,
+        }
+        if state:
+            move_data["state"] = state
+        
+        content = json.dumps(move_data, indent=2)
+        
+        # Save as a fractal node
+        node = self.memory.save_fractal_node(
+            content=content,
+            tags=["move", f"game:{game_id}", f"move:{move}"],
+            summary=f"Game {game_id}: {move}",
+            content_type=ContentType.TEXT,
+        )
+        
+        logger.debug(f"game.strategy_memory.record_move game_id={game_id} move={move}")
+        return node is not None
+
+    def retrieve_memory(
+        self,
+        board_vector: list[float] | None = None,
+        state: dict[str, Any] | None = None,
+        game_type: str = "chess",
+        k: int = 5,
+    ) -> list[FractalNode]:
+        """
+        Find similar board positions from past games.
+        
+        Returns relevant move sequences, opening book patterns, or strategic
+        positions similar to the current state.
+        
+        Args:
+            board_vector: Optional board vector representation
+            state: Optional game state dictionary
+            game_type: Type of game (default: "chess")
+            k: Number of similar positions to retrieve
+            
+        Returns:
+            List of FractalNodes containing relevant strategies and moves
+        """
+        if state:
+            # Use state-based query
+            query = self._build_state_query(state, game_type)
+        elif board_vector:
+            # Use vector-based query (simplified)
+            query = f"strategy game:{game_type} board position"
+        else:
+            # Generic query
+            query = f"strategy game:{game_type}"
+        
+        # Retrieve similar strategies
+        nodes = self.memory.get_entangled_context(query=query, top_k=k)
+        
+        # Filter to strategy and move nodes
+        relevant_nodes = [
+            node for node in nodes
+            if any(tag in node.tags for tag in ["strategy", "move"])
+        ]
+        
+        logger.debug(
+            f"game.strategy_memory.retrieve_memory found {len(relevant_nodes)} "
+            f"relevant positions for game_type={game_type}"
+        )
+        
+        return relevant_nodes
