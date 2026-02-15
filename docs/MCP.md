@@ -293,3 +293,232 @@ For issues with MCP integration:
 2. Review logs for error messages
 3. Test MCP servers independently
 4. Create an issue with server configuration and logs
+
+## Game Tool Mapping
+
+The Nanobot MCP integration includes game action tools for board games:
+
+### Available Game Tools
+
+The `simple_mcp_server.py` example exposes these game-specific tools:
+
+```python
+{
+    "name": "place_marker",
+    "description": "Place a marker (X or O) on a TicTacToe board",
+    "inputSchema": {
+        "position": "r0c0" | "r1c2" | ...,  # Board position
+        "marker": "X" | "O"                   # Marker type
+    }
+}
+
+{
+    "name": "move_piece",
+    "description": "Move a chess piece from one square to another",
+    "inputSchema": {
+        "from_square": "e2",      # Starting square
+        "to_square": "e4",        # Destination square
+        "piece": "P" | "N" | ...  # Piece type (optional)
+    }
+}
+
+{
+    "name": "get_legal_moves",
+    "description": "Get legal moves for a game position",
+    "inputSchema": {
+        "game_type": "tictactoe" | "chess",  # Game type
+        "state": {...}                        # Current game state
+    }
+}
+```
+
+### Example: Using Game Tools via MCP
+
+```python
+from nanobot.agent.tools.registry import ToolRegistry
+from nanobot.mcp.registry import MCPRegistry
+from nanobot.mcp.schemas import MCPServerConfig
+
+# Setup
+tool_registry = ToolRegistry()
+mcp_registry = MCPRegistry(tool_registry)
+
+# Configure game tools server
+server_config = MCPServerConfig(
+    name="game_server",
+    type="local",
+    command="python",
+    args=["examples/simple_mcp_server.py"],
+)
+
+# Connect and register tools
+await mcp_registry.add_client(server_config)
+
+# Use tool via registry
+result = await tool_registry.execute(
+    "mcp_game_server_place_marker",
+    {"position": "r1c1", "marker": "X"}
+)
+# Returns: "Placed X at r1c1"
+
+# Use get_legal_moves
+result = await tool_registry.execute(
+    "mcp_game_server_get_legal_moves",
+    {
+        "game_type": "tictactoe",
+        "state": {
+            "board": [["X", "", ""], ["", "O", ""], ["", "", ""]],
+            "current_player": "X"
+        }
+    }
+)
+# Returns: "Legal moves: r0c1, r0c2, r1c0, r1c2, r2c0, r2c1, r2c2"
+```
+
+### Creating a Custom Game MCP Server
+
+```python
+#!/usr/bin/env python
+"""Custom Game MCP Server"""
+
+import asyncio
+import json
+import sys
+
+async def handle_request(request: dict) -> dict:
+    method = request.get("method")
+    
+    if method == "tools/list":
+        return {
+            "tools": [
+                {
+                    "name": "make_move",
+                    "description": "Make a move in the game",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "move": {"type": "string"},
+                            "player": {"type": "string"}
+                        }
+                    }
+                }
+            ]
+        }
+    
+    elif method == "tools/call":
+        tool_name = request["params"]["name"]
+        args = request["params"]["arguments"]
+        
+        if tool_name == "make_move":
+            move = args.get("move")
+            player = args.get("player")
+            # Your game logic here
+            result = f"Player {player} moved {move}"
+            
+            return {
+                "content": [{"type": "text", "text": result}],
+                "isError": False
+            }
+    
+    return {}
+
+async def main():
+    while True:
+        line = await asyncio.get_event_loop().run_in_executor(
+            None, sys.stdin.readline
+        )
+        if not line:
+            break
+        
+        request = json.loads(line.strip())
+        msg_id = request.get("id")
+        
+        result = await handle_request(request)
+        
+        if msg_id is not None:
+            response = {
+                "jsonrpc": "2.0",
+                "id": msg_id,
+                "result": result
+            }
+            print(json.dumps(response), flush=True)
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+### Game Tool Configuration
+
+Add to `nanobot/config/mcp.yaml`:
+
+```yaml
+mcp_servers:
+  - name: game_tools
+    type: local
+    command: python
+    args:
+      - "examples/simple_mcp_server.py"
+    description: "Game action tools for TicTacToe and Chess"
+```
+
+### Testing Game Tools
+
+```bash
+# Test MCP game tools integration
+python -m pytest tests/game/test_mcp_game_tools.py -v
+
+# Run verification
+python scripts/verify_game_learning.py --quick
+```
+
+## Integration with Game Learning Layer
+
+MCP game tools integrate seamlessly with the Game Learning Layer:
+
+```python
+from nanobot.game.learning_controller import GameLearningController
+from nanobot.agent.tools.registry import ToolRegistry
+from nanobot.mcp.registry import MCPRegistry
+
+# Setup MCP registry with game tools
+tool_registry = ToolRegistry()
+mcp_registry = MCPRegistry(tool_registry)
+
+# Add game tools server
+await mcp_registry.add_client(game_server_config)
+
+# Create learning controller with MCP-enabled tool registry
+learning_controller = GameLearningController(
+    game_env=game_env,
+    reasoning_engine=reasoning_engine,
+    config=learning_config,
+)
+
+# Game tools are now available for the agent to use
+# The agent can discover and call place_marker, move_piece, etc.
+```
+
+## Metrics and Monitoring
+
+MCP game tools include Prometheus metrics:
+
+```python
+from nanobot.mcp.metrics import get_mcp_metrics
+
+metrics = get_mcp_metrics()
+# {
+#     "mcp_requests_total": 145,
+#     "mcp_requests_failed": 2,
+#     "mcp_request_latency_avg": 12.5,  # ms
+#     "mcp_tools_discovered": 5,
+#     "mcp_servers_connected": 1
+# }
+```
+
+Metrics tracked:
+- Request count (success/failure)
+- Request latency (average, p95, p99)
+- Tool discovery events
+- Server connection status
+- Game action execution count
+

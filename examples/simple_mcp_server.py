@@ -67,6 +67,66 @@ async def handle_request(request: dict) -> dict:
                         "required": ["text"],
                     },
                 },
+                {
+                    "name": "place_marker",
+                    "description": "Place a marker (X or O) on a TicTacToe board",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "position": {
+                                "type": "string",
+                                "description": "Position in format 'r0c0', 'r1c2', etc.",
+                            },
+                            "marker": {
+                                "type": "string",
+                                "description": "Marker to place: 'X' or 'O'",
+                                "enum": ["X", "O"],
+                            },
+                        },
+                        "required": ["position", "marker"],
+                    },
+                },
+                {
+                    "name": "move_piece",
+                    "description": "Move a chess piece from one square to another",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "from_square": {
+                                "type": "string",
+                                "description": "Starting square (e.g., 'e2')",
+                            },
+                            "to_square": {
+                                "type": "string",
+                                "description": "Destination square (e.g., 'e4')",
+                            },
+                            "piece": {
+                                "type": "string",
+                                "description": "Piece being moved (e.g., 'P', 'N', 'B', 'R', 'Q', 'K')",
+                            },
+                        },
+                        "required": ["from_square", "to_square"],
+                    },
+                },
+                {
+                    "name": "get_legal_moves",
+                    "description": "Get legal moves for a game position",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "game_type": {
+                                "type": "string",
+                                "description": "Type of game: 'tictactoe' or 'chess'",
+                                "enum": ["tictactoe", "chess"],
+                            },
+                            "state": {
+                                "type": "object",
+                                "description": "Current game state",
+                            },
+                        },
+                        "required": ["game_type", "state"],
+                    },
+                },
             ]
         }
 
@@ -79,6 +139,24 @@ async def handle_request(request: dict) -> dict:
             result = f"Echo: {args.get('message', '')}"
         elif tool_name == "uppercase":
             result = args.get("text", "").upper()
+        elif tool_name == "place_marker":
+            position = args.get("position", "")
+            marker = args.get("marker", "")
+            result = f"Placed {marker} at {position}"
+        elif tool_name == "move_piece":
+            from_sq = args.get("from_square", "")
+            to_sq = args.get("to_square", "")
+            piece = args.get("piece", "piece")
+            result = f"Moved {piece} from {from_sq} to {to_sq}"
+        elif tool_name == "get_legal_moves":
+            game_type = args.get("game_type", "")
+            # Simplified: return mock legal moves
+            if game_type == "tictactoe":
+                result = "Legal moves: r0c0, r0c1, r0c2, r1c0, r1c1, r1c2, r2c0, r2c1, r2c2"
+            elif game_type == "chess":
+                result = "Legal moves: e2e4, d2d4, Nf3, Nc3 (scaffold - full chess not implemented)"
+            else:
+                result = f"Unknown game type: {game_type}"
         else:
             return {
                 "content": [
