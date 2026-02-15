@@ -43,6 +43,12 @@ from nanobot.game.visual_perception import (
     VisualEncoder,
     create_encoder,
 )
+from nanobot.game.rules import (
+    BoardPosition,
+    BoardState,
+    ChessRules,
+    TicTacToeRules,
+)
 
 __all__ = [
     # Interface
@@ -100,4 +106,9 @@ __all__ = [
     "EventStreamPerceptionSource",
     "ScreenPerceptionSource",
     "UnifiedPerceptionAdapter",
+    # Game rules
+    "BoardPosition",
+    "BoardState",
+    "TicTacToeRules",
+    "ChessRules",
 ]
