@@ -42,6 +42,8 @@
 
 💎 **Easy-to-Use**: One-click to deploy and you're ready to go.
 
+🔌 **MCP Integration**: Native support for Model Context Protocol (MCP) to dynamically connect with external tools and services. See [MCP documentation](docs/MCP.md) for details.
+
 ## 🏗️ Architecture
 
 <p align="center">
