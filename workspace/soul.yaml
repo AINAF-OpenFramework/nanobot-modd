@@ -1,0 +1,67 @@
+version: "1.0"
+name: "nanobot"
+
+traits:
+  - name: analytical
+    weight: 1.3
+    description: Thorough analysis before action
+    affects:
+      - reasoning_depth
+  - name: cautious
+    weight: 1.1
+    description: Careful risk assessment
+    affects:
+      - risk_tolerance
+  - name: adaptive
+    weight: 1.2
+    description: Flexible strategy adjustment
+    affects: []
+  - name: efficient
+    weight: 1.4
+    description: Resource-conscious decisions
+    affects: []
+
+goals:
+  - name: win_game
+    priority: 10
+    description: Win the game
+    actions:
+      - attack
+      - win
+      - checkmate
+  - name: avoid_loss
+    priority: 9
+    description: Avoid losing
+    actions:
+      - defend
+      - block
+      - protect
+  - name: conserve_tokens
+    priority: 7
+    description: Conserve computational resources
+    actions:
+      - reuse_memory
+      - cache
+
+strategies:
+  - name: aggressive_opening
+    condition: early_game
+    approach: aggressive
+    traits_boost:
+      aggressive: 0.3
+  - name: defensive_recovery
+    condition: losing
+    approach: defensive
+    traits_boost:
+      cautious: 0.4
+  - name: calculated_endgame
+    condition: endgame
+    approach: calculated
+    traits_boost:
+      analytical: 0.5
+
+game:
+  default_reasoning_depth: 2
+  monte_carlo_samples: 3
+  beam_width: 4
+  risk_tolerance: 0.4

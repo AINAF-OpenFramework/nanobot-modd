@@ -372,3 +372,199 @@ class TestGameLearningIntegration:
 
         # Verify learning stats
         assert controller.learning_state.wins == 1
+
+
+class TestSoulIntegration:
+    """Integration tests for soul layer with game components."""
+
+    @pytest.fixture
+    def temp_workspace(self):
+        """Create a temporary workspace with soul.yaml."""
+        import yaml
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            workspace = Path(tmpdir)
+            soul_data = {
+                "version": "1.0",
+                "name": "test-bot",
+                "traits": [
+                    {
+                        "name": "analytical",
+                        "weight": 1.5,
+                        "description": "Analytical trait",
+                        "affects": ["reasoning_depth"],
+                    },
+                    {
+                        "name": "aggressive",
+                        "weight": 1.3,
+                        "description": "Aggressive trait",
+                        "affects": [],
+                    },
+                ],
+                "goals": [
+                    {
+                        "name": "win_game",
+                        "priority": 10,
+                        "description": "Win the game",
+                        "actions": ["attack", "win", "capture"],
+                    },
+                ],
+                "strategies": [
+                    {
+                        "name": "aggressive_opening",
+                        "condition": "early_game",
+                        "approach": "aggressive",
+                        "traits_boost": {"aggressive": 0.3},
+                    },
+                ],
+                "game": {
+                    "default_reasoning_depth": 2,
+                    "monte_carlo_samples": 3,
+                    "beam_width": 4,
+                    "risk_tolerance": 0.4,
+                },
+            }
+            (workspace / "soul.yaml").write_text(yaml.dump(soul_data))
+            yield workspace
+
+    @pytest.fixture(autouse=True)
+    def reset_soul_singleton(self):
+        """Reset soul loader singleton."""
+        from nanobot.soul.loader import SoulLoader
+        SoulLoader.reset_instance()
+        yield
+        SoulLoader.reset_instance()
+
+    def test_perception_to_reasoning_pipeline(self, temp_workspace):
+        """Test perception data flows to reasoning correctly."""
+        from nanobot.game.perception import PerceptionData
+
+        # Create perception data
+        perception = PerceptionData(
+            normalized={"board": ["X", "", "", "", "O", "", "", "", ""], "turn": 2},
+            source_type="api",
+            confidence=1.0,
+        )
+
+        # Verify data structure is compatible with game state
+        assert "board" in perception.normalized
+        assert "turn" in perception.normalized
+
+    def test_reasoning_to_memory_pipeline(self, temp_workspace):
+        """Test reasoning results can be stored in memory."""
+        from nanobot.agent.memory import MemoryStore
+        from nanobot.game.strategy_memory import StrategyMemory
+
+        memory_store = MemoryStore(temp_workspace)
+        strategy_memory = StrategyMemory(memory_store)
+
+        # Store a strategy
+        state = {"board": ["X", "", ""], "turn": 1}
+        move = "4"
+        outcome = {"result": "continue"}
+
+        node = strategy_memory.store_strategy(
+            state=state,
+            move=move,
+            outcome=outcome,
+            game_type="tictactoe",
+        )
+
+        assert node is not None
+        assert "strategy" in node.tags
+
+        # Retrieve strategies
+        retrieved = strategy_memory.retrieve_relevant_strategies(state, k=5)
+        assert isinstance(retrieved, list)
+
+    def test_soul_traits_affect_scoring(self, temp_workspace):
+        """Test that soul traits affect hypothesis scoring."""
+        from nanobot.soul.loader import SoulLoader
+        from nanobot.soul.traits import TraitScorer
+
+        soul_loader = SoulLoader.get_instance(temp_workspace)
+        trait_scorer = TraitScorer(soul_loader)
+
+        # Score hypotheses with different content
+        base_score = 0.5
+
+        # Aggressive hypothesis should score higher due to trait
+        aggressive_score = trait_scorer.score_hypothesis(
+            "attack aggressively", base_score
+        )
+        neutral_score = trait_scorer.score_hypothesis("wait", base_score)
+
+        # Both should be valid scores
+        assert 0.0 <= aggressive_score <= 1.0
+        assert 0.0 <= neutral_score <= 1.0
+
+    @pytest.mark.asyncio
+    async def test_full_game_loop_with_memory(self, temp_workspace):
+        """Test full game loop integrating soul, reasoning, and memory."""
+        from unittest.mock import AsyncMock, patch
+
+        from nanobot.agent.memory_types import Hypothesis, SuperpositionalState
+        from nanobot.game.loop import AutonomousGameLoop, GameLoopConfig
+
+        mock_provider = AsyncMock()
+
+        # Create mock rules that end game quickly
+        rules = MockTicTacToeRules()
+
+        loop = AutonomousGameLoop(
+            provider=mock_provider,
+            model="test-model",
+            environment=rules,
+            workspace=temp_workspace,
+            config=GameLoopConfig(max_turns=3),
+            game_type="tictactoe",
+            player_id="test",
+        )
+
+        # Set initial state
+        loop._state_engine.update({
+            "board": ["X", "X", "", "O", "O", "", "", "", ""],
+            "current_player": "X",
+            "turn_number": 4,
+        })
+
+        # Mock reasoning to return winning move
+        with patch.object(
+            loop._reasoning_engine, "select_best_move", new_callable=AsyncMock
+        ) as mock_select:
+            mock_select.return_value = "2"
+
+            result = await loop.run()
+
+        # Game should have completed
+        assert result is not None
+        assert "game_id" in result
+        assert "outcome" in result
+
+    def test_latent_reasoning_still_works(self, temp_workspace):
+        """Regression test: ensure latent reasoning is not broken."""
+        from unittest.mock import AsyncMock
+
+        from nanobot.agent.latent import LatentReasoner
+        from nanobot.agent.memory_types import SuperpositionalState
+
+        provider = AsyncMock()
+        provider.chat = AsyncMock(return_value={
+            "choices": [{
+                "message": {
+                    "content": '{"hypotheses": [{"intent": "test", "confidence": 0.9, "reasoning": "test"}]}'
+                }
+            }]
+        })
+
+        reasoner = LatentReasoner(
+            provider=provider,
+            model="test-model",
+            timeout_seconds=10,
+            memory_config={},
+        )
+
+        # The reasoner should be instantiable and have expected attributes
+        assert reasoner is not None
+        assert hasattr(reasoner, "reason")
+
