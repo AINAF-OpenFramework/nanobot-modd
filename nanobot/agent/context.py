@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from nanobot.agent.memory import MemoryStore
+from nanobot.agent.memory_types import SuperpositionalState
 from nanobot.agent.skills import SkillsLoader
 
 
@@ -26,7 +27,10 @@ class ContextBuilder:
         self.skills = SkillsLoader(workspace)
     
     def build_system_prompt(
-        self, skill_names: list[str] | None = None, user_query: str = ""
+        self,
+        skill_names: list[str] | None = None,
+        user_query: str = "",
+        latent_state: SuperpositionalState | None = None,
     ) -> str:
         """
         Build the system prompt using the 6-Block Context Workflow.
@@ -53,6 +57,16 @@ class ContextBuilder:
         bootstrap = self._load_bootstrap_files()
         if bootstrap:
             parts.append(bootstrap)
+
+        if latent_state:
+            top_intent = latent_state.hypotheses[0].intent if latent_state.hypotheses else "Undetermined Intent"
+            parts.append(
+                "<latent_state>\n"
+                f"entropy: {latent_state.entropy}\n"
+                f"strategy: {latent_state.strategic_direction}\n"
+                f"primary_hypothesis: {top_intent}\n"
+                "</latent_state>"
+            )
         
         # Block 1.5: Cognitive Directive
         cognitive_directive = """# COGNITIVE DIRECTIVE
@@ -174,6 +188,7 @@ To recall past events, grep {workspace_path}/memory/HISTORY.md"""
         media: list[str] | None = None,
         channel: str | None = None,
         chat_id: str | None = None,
+        latent_state: SuperpositionalState | None = None,
     ) -> list[dict[str, Any]]:
         """
         Build the complete message list for an LLM call using 6-block structure.
@@ -192,7 +207,9 @@ To recall past events, grep {workspace_path}/memory/HISTORY.md"""
         messages = []
 
         # Block 1-3: System prompt (with user query for fractal node retrieval)
-        system_prompt = self.build_system_prompt(skill_names, user_query=current_message)
+        system_prompt = self.build_system_prompt(
+            skill_names, user_query=current_message, latent_state=latent_state
+        )
         if channel and chat_id:
             system_prompt += f"\n\n## Current Session\nChannel: {channel}\nChat ID: {chat_id}"
         messages.append({"role": "system", "content": system_prompt})

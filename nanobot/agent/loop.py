@@ -8,6 +8,7 @@ from typing import Any
 from loguru import logger
 
 from nanobot.agent.context import ContextBuilder
+from nanobot.agent.latent import LatentReasoner
 from nanobot.agent.memory import MemoryStore
 from nanobot.agent.subagent import SubagentManager
 from nanobot.agent.tools.cron import CronTool
@@ -19,6 +20,7 @@ from nanobot.agent.tools.spawn import SpawnTool
 from nanobot.agent.tools.web import WebFetchTool, WebSearchTool
 from nanobot.bus.events import InboundMessage, OutboundMessage
 from nanobot.bus.queue import MessageBus
+from nanobot.config import settings
 from nanobot.providers.base import LLMProvider
 from nanobot.session.manager import SessionManager
 
@@ -63,8 +65,23 @@ class AgentLoop:
         self.exec_config = exec_config or ExecToolConfig()
         self.cron_service = cron_service
         self.restrict_to_workspace = restrict_to_workspace
+        self.memory_config = memory_config or {}
+        self.clarify_entropy_threshold = float(
+            self.memory_config.get("clarify_entropy_threshold", settings.clarify_entropy_threshold)
+        )
+        self.max_context_nodes = int(
+            self.memory_config.get("max_context_nodes", settings.max_context_nodes)
+        )
+        latent_timeout_seconds = int(
+            self.memory_config.get("latent_timeout_seconds", settings.latent_timeout_seconds)
+        )
         
         self.context = ContextBuilder(workspace, memory_config=memory_config)
+        self.latent_engine = LatentReasoner(
+            provider=self.provider,
+            model=self.model,
+            timeout_seconds=latent_timeout_seconds,
+        )
         self.sessions = session_manager or SessionManager(workspace)
         self.tools = ToolRegistry()
         self.subagents = SubagentManager(
@@ -197,6 +214,28 @@ class AgentLoop:
         cron_tool = self.tools.get("cron")
         if isinstance(cron_tool, CronTool):
             cron_tool.set_context(msg.channel, msg.chat_id)
+
+        latent_nodes = self.context.memory.get_entangled_context(
+            msg.content, top_k=self.max_context_nodes
+        )
+        latent_context = self.context.memory._format_nodes(latent_nodes)
+        latent_state = await self.latent_engine.reason(
+            user_message=msg.content,
+            context_summary=latent_context,
+        )
+        should_clarify = latent_state.entropy > self.clarify_entropy_threshold
+        if should_clarify:
+            opt1 = latent_state.hypotheses[0].intent if len(latent_state.hypotheses) > 0 else "continue"
+            opt2 = latent_state.hypotheses[1].intent if len(latent_state.hypotheses) > 1 else "adjust direction"
+            return OutboundMessage(
+                channel=msg.channel,
+                chat_id=msg.chat_id,
+                content=(
+                    "I'm detecting some ambiguity. "
+                    f"Are you looking to {opt1}, or {opt2}? Could you clarify?"
+                ),
+                metadata=msg.metadata or {},
+            )
         
         # Build initial messages (use get_history for LLM-formatted messages)
         messages = self.context.build_messages(
@@ -205,6 +244,7 @@ class AgentLoop:
             media=msg.media if msg.media else None,
             channel=msg.channel,
             chat_id=msg.chat_id,
+            latent_state=latent_state,
         )
         
         # Agent loop

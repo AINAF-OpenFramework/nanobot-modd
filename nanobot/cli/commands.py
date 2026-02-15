@@ -314,6 +314,9 @@ def _get_memory_config(config: "Config") -> dict:
         "embedding_model": config.memory.embedding_model,
         "embedding_dim": config.memory.embedding_dim,
         "use_hybrid_search": config.memory.use_hybrid_search,
+        "clarify_entropy_threshold": config.memory.clarify_entropy_threshold,
+        "latent_timeout_seconds": config.memory.latent_timeout_seconds,
+        "max_context_nodes": config.memory.max_context_nodes,
     }
 
 
