@@ -26,7 +26,7 @@ async def test_chat_via_curl_includes_and_parses_tool_calls(monkeypatch: pytest.
     provider = LiteLLMProvider(api_base="http://localhost:11434")
     captured_command: list[str] = []
 
-    async def fake_to_thread(fn, command, **kwargs):  # noqa: ANN001
+    async def fake_to_thread(function, command, **kwargs):
         captured_command.extend(command)
         payload = json.loads(command[command.index("-d") + 1])
         assert payload["tools"][0]["function"]["name"] == "ping"

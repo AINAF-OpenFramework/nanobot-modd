@@ -301,11 +301,12 @@ class LiteLLMProvider(LLMProvider):
 
             if not content and not tool_calls:
                 return LLMResponse(
-                    content="Local endpoint error: missing or empty content in response",
+                    content="Local endpoint error: missing or empty content and tool_calls in response",
                     finish_reason="error",
                 )
             
             return LLMResponse(
+                # OpenAI-compatible tool calls can legitimately return null content.
                 content=content or "",
                 tool_calls=tool_calls,
                 finish_reason=choice.get('finish_reason', 'stop'),
