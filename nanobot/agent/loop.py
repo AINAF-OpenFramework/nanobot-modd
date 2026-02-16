@@ -318,7 +318,7 @@ class AgentLoop:
             latent_state = await self.latent_engine.reason(user_message=msg.content, context_summary=latent_context)
             latent_reasoning_duration.observe(time.time() - latent_start)
             should_clarify = latent_state.entropy > self.clarify_entropy_threshold
-        if should_clarify:
+        if should_clarify and latent_state:
             if len(latent_state.hypotheses) >= 2:
                 opt1 = latent_state.hypotheses[0].intent
                 opt2 = latent_state.hypotheses[1].intent
