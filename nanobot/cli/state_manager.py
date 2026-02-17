@@ -136,6 +136,7 @@ def clear_persistent_state(
 
 
 def _clear_file(path: Path, dry_run: bool, force: bool) -> bool:
+    """Clear a file; returns True when cleared or already absent."""
     if not path.exists():
         return True
     if dry_run:
@@ -150,13 +151,16 @@ def _clear_file(path: Path, dry_run: bool, force: bool) -> bool:
 
 
 def _clear_directory(path: Path, dry_run: bool, force: bool) -> bool:
+    """Clear directory contents; returns True when cleared or already absent/empty."""
     if not path.exists():
         return True
     items = list(path.iterdir())
     if not items or dry_run:
         return True
-    if not force and not console.input(f"Clear {len(items)} items from {path.name}/? [y/N]: ").lower().startswith("y"):
-        return False
+    if not force:
+        confirm = console.input(f"Clear {len(items)} items from {path.name}/? [y/N]: ")
+        if not confirm.lower().startswith("y"):
+            return False
     try:
         for item in items:
             if item.is_dir():
@@ -187,10 +191,11 @@ If this file has no tasks (only headers and comments), the agent will skip the h
 """
     if dry_run:
         return True
-    if not force and path.exists() and not console.input(
-        "Reset HEARTBEAT.md to template? [y/N]: "
-    ).lower().startswith("y"):
-        return False
+    requires_confirmation = not force and path.exists()
+    if requires_confirmation:
+        confirm = console.input("Reset HEARTBEAT.md to template? [y/N]: ")
+        if not confirm.lower().startswith("y"):
+            return False
     try:
         path.write_text(template, encoding="utf-8")
         return True
@@ -199,6 +204,7 @@ If this file has no tasks (only headers and comments), the agent will skip the h
 
 
 def reload_persistent_state(category: str) -> bool:
+    """Recreate default persistent state for supported categories (`als`, `memory`)."""
     workspace = get_workspace_path()
 
     if category == "als":

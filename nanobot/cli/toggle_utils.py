@@ -26,10 +26,14 @@ def log_toggle_change(feature: str, old_value: bool, new_value: bool, source: st
 
 def toggle_feature(
     feature_name: str,
-    state_obj,
+    state_obj: object,
     attr_name: str,
     action: Literal["on", "off", "interactive"] = "interactive",
 ):
+    if action not in {"on", "off", "interactive"}:
+        click.echo(f"Invalid action: {action}")
+        return False
+
     current = getattr(state_obj, attr_name)
 
     if action == "interactive":
@@ -47,11 +51,8 @@ def toggle_feature(
             return False
     elif action == "on":
         new_value = True
-    elif action == "off":
+    else:  # action == "off"
         new_value = False
-    else:
-        click.echo(f"Invalid action: {action}")
-        return False
 
     setattr(state_obj, attr_name, new_value)
     log_toggle_change(feature_name, current, new_value)
@@ -59,7 +60,10 @@ def toggle_feature(
     return True
 
 
-def batch_toggle(state_obj, toggles: dict[str, bool], log_source: str = "batch") -> dict[str, tuple[bool, bool]]:
+def batch_toggle(
+    state_obj: object, toggles: dict[str, bool], log_source: str = "batch"
+) -> dict[str, tuple[bool, bool]]:
+    """Apply multiple toggle updates and return old/new values for each changed toggle."""
     results = {}
     attr_mapping = {
         "latent": "latent_reasoning_enabled",

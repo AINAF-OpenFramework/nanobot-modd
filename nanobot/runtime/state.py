@@ -80,6 +80,7 @@ class RuntimeState:
             self._heartbeat_enabled = bool(enabled)
 
     def get_all_toggles(self) -> dict[str, bool]:
+        """Return all runtime toggle values keyed by stable CLI-friendly names."""
         with self._lock:
             return {
                 "latent_reasoning": self._latent_reasoning_enabled,
