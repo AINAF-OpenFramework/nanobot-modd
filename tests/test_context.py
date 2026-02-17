@@ -80,7 +80,6 @@ def test_system_prompt_respects_runtime_memory_toggles(monkeypatch):
         monkeypatch.setattr(context.memory, "read_long_term", lambda: "CORE")
         monkeypatch.setattr(context.memory, "retrieve_relevant_nodes", lambda *args, **kwargs: "FRACTAL")
         monkeypatch.setattr(context.memory, "get_entangled_context", lambda *args, **kwargs: [])
-        monkeypatch.setattr(context.memory, "_format_nodes", lambda *args, **kwargs: "ENTANGLED")
 
         previous = (
             state.triune_memory_enabled,

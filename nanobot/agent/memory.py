@@ -500,6 +500,17 @@ class MemoryStore:
 
         return context_str
 
+    def format_nodes_for_context(self, nodes: list[FractalNode]) -> str:
+        """Format retrieved nodes for prompt context.
+
+        Args:
+            nodes: Retrieved fractal or entangled memory nodes.
+
+        Returns:
+            A formatted markdown string suitable for context injection.
+        """
+        return self._format_nodes(nodes)
+
     def get_als_context(self) -> str:
         """
         Returns the Active Learning State summary for context.

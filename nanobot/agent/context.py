@@ -117,17 +117,13 @@ Do not ignore relevant memory.
             resource_parts.append(f"## Long-term Memory\n{core_memory}")
 
         # Fractal Nodes (token-efficient top-K retrieval)
-        if state.mem0_enabled and user_query and not state.fractal_memory_enabled:
-            mem0_content = self.memory.retrieve_relevant_nodes(user_query, k=5)
-            if mem0_content:
-                resource_parts.append(mem0_content)
-        if state.fractal_memory_enabled and user_query:
+        if user_query and (state.mem0_enabled or state.fractal_memory_enabled):
             fractal_content = self.memory.retrieve_relevant_nodes(user_query, k=5)
             if fractal_content:
                 resource_parts.append(fractal_content)
         if state.entangled_memory_enabled and user_query:
             entangled_nodes = self.memory.get_entangled_context(user_query, top_k=5)
-            entangled_content = self.memory._format_nodes(entangled_nodes)
+            entangled_content = self.memory.format_nodes_for_context(entangled_nodes)
             if entangled_content:
                 resource_parts.append(entangled_content)
 
