@@ -86,7 +86,13 @@ def state_audit(
     limit: int = typer.Option(50, "--limit", "-l", help="Number of entries"),
     action: str | None = typer.Option(None, "--action", "-a", help="Filter by action type"),
 ) -> None:
-    action_filter = AuditAction(action) if action else None
+    if action:
+        try:
+            action_filter = AuditAction(action)
+        except ValueError as exc:
+            raise typer.BadParameter(f"Invalid action: {action}") from exc
+    else:
+        action_filter = None
     entries = read_audit_log(action_filter=action_filter, limit=limit)
     for entry in entries:
         console.print(json.dumps(entry))

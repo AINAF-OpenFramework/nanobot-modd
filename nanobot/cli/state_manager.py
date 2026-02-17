@@ -93,7 +93,7 @@ _CATEGORY_MAPPING = {
 def check_persistent_state(category: str | None = None) -> dict[str, dict[str, Any]]:
     files = get_persistent_files()
     if category and category != "all":
-        files = [f for f in files if f.name in (_CATEGORY_MAPPING.get(category, []) or [])]
+        files = [f for f in files if f.name in _CATEGORY_MAPPING.get(category, [])]
 
     results = {}
     for pf in files:

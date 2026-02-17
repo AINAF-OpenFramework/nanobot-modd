@@ -69,4 +69,6 @@ def read_audit_log(
 
         entries.append(entry)
 
-    return entries[-max(limit, 0) :]
+    if limit <= 0:
+        return []
+    return entries[-limit:]
