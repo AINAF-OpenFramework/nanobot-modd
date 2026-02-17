@@ -439,6 +439,7 @@ def gateway(
     console.print(f"{__logo__} Starting nanobot gateway on port {port}...")
 
     config = load_config()
+    state.latent_reasoning_enabled = config.agents.defaults.enable_latent_reasoning
     bus = MessageBus()
     provider = _make_provider(config)
     session_manager = SessionManager(config.workspace_path)
@@ -549,8 +550,7 @@ def latent():
         console.print("[dim]Nanobot will now respond concisely.[/dim]")
     else:
         console.print("[red]Invalid choice[/red]")
-
-
+        raise typer.Exit(code=1)
 
 
 # ============================================================================
@@ -573,6 +573,7 @@ def agent(
     from nanobot.config.loader import load_config
 
     config = load_config()
+    state.latent_reasoning_enabled = config.agents.defaults.enable_latent_reasoning
 
     bus = MessageBus()
     provider = _make_provider(config)

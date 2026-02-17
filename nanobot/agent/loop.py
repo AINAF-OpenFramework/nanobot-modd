@@ -79,7 +79,6 @@ class AgentLoop:
         self.exec_config = exec_config or ExecToolConfig()
         self.cron_service = cron_service
         self.restrict_to_workspace = restrict_to_workspace
-        state.latent_reasoning_enabled = enable_latent_reasoning
         self.memory_config = memory_config or {}
         self.clarify_entropy_threshold = float(
             self.memory_config.get("clarify_entropy_threshold", settings.clarify_entropy_threshold)

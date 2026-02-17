@@ -1,6 +1,7 @@
 """LiteLLM provider implementation for multi-provider support."""
 
 import asyncio
+import copy
 import json
 import os
 import subprocess
@@ -130,23 +131,24 @@ class LiteLLMProvider(LLMProvider):
             LLMResponse with content and/or tool calls.
         """
         model = self._resolve_model(model or self.default_model)
+        prepared_messages = copy.deepcopy(messages)
 
         if state.latent_reasoning_enabled:
             max_tokens = max(max_tokens, 1024)
-            for msg in messages:
+            for msg in prepared_messages:
                 if msg.get("role") == "system":
                     content = msg.get("content", "")
-                    if "step-by-step" not in content:
+                    if "step-by-step reasoning" not in content.lower():
                         msg["content"] = (
                             f"{content}\n\nUse step-by-step reasoning. Think carefully before answering."
                         ).strip()
                     break
         else:
             max_tokens = min(max_tokens, 512)
-            for msg in messages:
+            for msg in prepared_messages:
                 if msg.get("role") == "system":
                     content = msg.get("content", "")
-                    if "Respond concisely." not in content:
+                    if "respond concisely" not in content.lower():
                         msg["content"] = f"{content}\n\nRespond concisely.".strip()
                     break
 
@@ -166,11 +168,11 @@ class LiteLLMProvider(LLMProvider):
                         is_loopback = True
 
             if is_loopback:
-                return await self._chat_via_curl(messages, model, max_tokens, temperature, tools)
+                return await self._chat_via_curl(prepared_messages, model, max_tokens, temperature, tools)
 
         kwargs: dict[str, Any] = {
             "model": model,
-            "messages": messages,
+            "messages": prepared_messages,
             "max_tokens": max_tokens,
             "temperature": temperature,
         }

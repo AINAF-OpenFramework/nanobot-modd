@@ -105,3 +105,8 @@ def test_latent_command_toggles_runtime_state():
         assert state.latent_reasoning_enabled is False
     finally:
         state.latent_reasoning_enabled = previous
+
+
+def test_latent_command_rejects_invalid_choice():
+    result = runner.invoke(app, ["latent"], input="99\n")
+    assert result.exit_code == 1
