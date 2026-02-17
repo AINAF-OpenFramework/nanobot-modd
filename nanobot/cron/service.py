@@ -12,6 +12,8 @@ from loguru import logger
 from nanobot.cron.types import CronJob, CronJobState, CronPayload, CronSchedule, CronStore
 from nanobot.runtime.state import state
 
+SUSPENDED_POLL_INTERVAL_S = 1.0
+
 
 def _now_ms() -> int:
     return int(time.time() * 1000)
@@ -188,7 +190,9 @@ class CronService:
             return
 
         delay_ms = max(0, next_wake - _now_ms())
-        delay_s = 1.0 if "cron" in state.suspended_services else delay_ms / 1000
+        delay_s = (
+            SUSPENDED_POLL_INTERVAL_S if "cron" in state.suspended_services else delay_ms / 1000
+        )
 
         async def tick():
             await asyncio.sleep(delay_s)

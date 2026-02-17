@@ -107,7 +107,11 @@ class HeartbeatService:
             logger.debug("Heartbeat: skipped (suspended)")
             return
 
-        if state.baseline_active or not state.heartbeat_enabled:
+        if state.baseline_active:
+            logger.debug("Heartbeat: skipped (baseline active)")
+            return
+
+        if not state.heartbeat_enabled:
             logger.debug("Heartbeat: skipped (disabled)")
             return
 
