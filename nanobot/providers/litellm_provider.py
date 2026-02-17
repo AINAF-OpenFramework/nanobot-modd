@@ -13,6 +13,7 @@ from litellm import acompletion
 
 from nanobot.providers.base import LLMProvider, LLMResponse, ToolCallRequest
 from nanobot.providers.registry import find_by_model, find_gateway
+from nanobot.runtime.state import state
 
 
 class LiteLLMProvider(LLMProvider):
@@ -129,6 +130,25 @@ class LiteLLMProvider(LLMProvider):
             LLMResponse with content and/or tool calls.
         """
         model = self._resolve_model(model or self.default_model)
+
+        if state.latent_reasoning_enabled:
+            max_tokens = max(max_tokens, 1024)
+            for msg in messages:
+                if msg.get("role") == "system":
+                    content = msg.get("content", "")
+                    if "step-by-step" not in content:
+                        msg["content"] = (
+                            f"{content}\n\nUse step-by-step reasoning. Think carefully before answering."
+                        ).strip()
+                    break
+        else:
+            max_tokens = min(max_tokens, 512)
+            for msg in messages:
+                if msg.get("role") == "system":
+                    content = msg.get("content", "")
+                    if "Respond concisely." not in content:
+                        msg["content"] = f"{content}\n\nRespond concisely.".strip()
+                    break
 
         # Special handling for local endpoints (Ollama, vLLM)
         if self.api_base:

@@ -18,6 +18,7 @@ from rich.table import Table
 from rich.text import Text
 
 from nanobot import __logo__, __version__
+from nanobot.runtime.state import state
 
 app = typer.Typer(
     name="nanobot",
@@ -527,6 +528,27 @@ def gateway(
             await channels.stop_all()
 
     asyncio.run(run())
+
+
+@app.command()
+def latent():
+    """Toggle latent reasoning on or off."""
+    console.print("\n[bold cyan]Latent Reasoning Toggle[/bold cyan]")
+    console.print("1. ON  (Deep reasoning, higher latency)")
+    console.print("2. OFF (Concise, lower latency)")
+
+    choice = typer.prompt("Select option", type=int)
+
+    if choice == 1:
+        state.latent_reasoning_enabled = True
+        console.print("[green]Latent reasoning ENABLED[/green]")
+        console.print("[dim]Nanobot will now think deeply before answering.[/dim]")
+    elif choice == 2:
+        state.latent_reasoning_enabled = False
+        console.print("[yellow]Latent reasoning DISABLED[/yellow]")
+        console.print("[dim]Nanobot will now respond concisely.[/dim]")
+    else:
+        console.print("[red]Invalid choice[/red]")
 
 
 
