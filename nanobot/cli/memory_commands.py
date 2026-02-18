@@ -19,7 +19,11 @@ def _get_memory_store() -> MemoryStore:
     """Get MemoryStore instance with workspace from config."""
     config = load_config()
     workspace = Path(config.agents.defaults.workspace).expanduser()
-    return MemoryStore(workspace, config.memory if hasattr(config, 'memory') else {})
+    # Get memory config if it exists
+    memory_config = {}
+    if hasattr(config, 'memory'):
+        memory_config = config.memory if isinstance(config.memory, dict) else {}
+    return MemoryStore(workspace, memory_config)
 
 
 @app.command()
