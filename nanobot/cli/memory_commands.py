@@ -276,29 +276,29 @@ def sessions_list(
     config = load_config()
     workspace = Path(config.agents.defaults.workspace).expanduser()
     session_store = SessionStore(workspace)
-    
+
     sessions = session_store.list_sessions(include_archived=include_archived)
-    
+
     if not sessions:
         console.print("[yellow]No sessions found[/yellow]")
         return
-    
+
     console.print(f"\n[bold cyan]Sessions[/bold cyan] ({len(sessions)} total)")
-    
+
     table = Table(show_header=True, header_style="bold magenta")
     table.add_column("Session ID", style="cyan")
     table.add_column("Created", style="dim")
     table.add_column("Events", justify="right")
     table.add_column("Status")
-    
+
     for session in sessions:
         session_id = session["session_id"]
         created = session["created_at"][:16] if session["created_at"] else "unknown"
         event_count = str(session["event_count"])
         status = "[yellow]archived[/yellow]" if session["archived"] else "[green]active[/green]"
-        
+
         table.add_row(session_id, created, event_count, status)
-    
+
     console.print(table)
     console.print()
 
@@ -313,38 +313,38 @@ def sessions_inspect(
     config = load_config()
     workspace = Path(config.agents.defaults.workspace).expanduser()
     session_store = SessionStore(workspace)
-    
+
     try:
         # Get session data
         session_data = session_store.load(session_id)
-        
+
         # Get filtered events
         types = [event_type] if event_type else None
         events = session_store.inspect(session_id, limit=limit, types=types)
-        
+
         console.print(f"\n[bold cyan]Session: {session_id}[/bold cyan]")
         console.print(f"[dim]Created: {session_data.get('created_at', 'unknown')}[/dim]")
-        
+
         if session_data.get("metadata"):
             console.print(f"[dim]Metadata: {session_data['metadata']}[/dim]")
-        
+
         console.print(f"\n[bold]Events[/bold] ({len(events)} shown)")
-        
+
         for i, event in enumerate(events, 1):
             timestamp = event.get("timestamp", "")[:19]
             event_type_str = event.get("type", "unknown")
             payload = event.get("payload", {})
-            
+
             console.print(f"\n[bold]{i}. [{timestamp}] {event_type_str}[/bold]")
-            
+
             # Show payload preview
             if isinstance(payload, dict):
                 for key, value in list(payload.items())[:3]:  # Show first 3 items
                     value_str = str(value)[:80]
                     console.print(f"   {key}: {value_str}{'...' if len(str(value)) > 80 else ''}")
-        
+
         console.print()
-        
+
     except FileNotFoundError:
         console.print(f"[red]Session '{session_id}' not found[/red]")
     except Exception as e:
@@ -359,7 +359,7 @@ def sessions_archive(
     config = load_config()
     workspace = Path(config.agents.defaults.workspace).expanduser()
     session_store = SessionStore(workspace)
-    
+
     try:
         archive_path = session_store.archive(session_id)
         console.print(f"[green]✓[/green] Session '{session_id}' archived to: {archive_path}")
@@ -380,42 +380,42 @@ def cache_show(
     config = load_config()
     workspace = Path(config.agents.defaults.workspace).expanduser()
     cache = RelationalCache(workspace)
-    
+
     patterns = cache.get_patterns(pattern_type=pattern_type, limit=limit)
     statistics = cache.get_statistics()
-    
+
     console.print("\n[bold cyan]Relational Cache Statistics[/bold cyan]")
     console.print(f"Total Patterns: {statistics.get('total_patterns', 0)}")
     console.print(f"Total Relationships: {statistics.get('total_relationships', 0)}")
-    
+
     tallest = statistics.get("tallest")
     if tallest:
         console.print(f"Tallest: {tallest.get('entity')} ({tallest.get('height')})")
-    
+
     shortest = statistics.get("shortest")
     if shortest:
         console.print(f"Shortest: {shortest.get('entity')} ({shortest.get('height')})")
-    
+
     if not patterns:
         console.print("\n[yellow]No patterns found[/yellow]")
         return
-    
+
     console.print(f"\n[bold]Patterns[/bold] ({len(patterns)} shown)")
-    
+
     table = Table(show_header=True, header_style="bold magenta")
     table.add_column("ID", justify="right")
     table.add_column("Type", style="cyan")
     table.add_column("Timestamp", style="dim")
     table.add_column("Entities")
-    
+
     for pattern in patterns:
         pattern_id = str(pattern.get("id", ""))
         ptype = pattern.get("type", "unknown")
         timestamp = pattern.get("timestamp", "")[:16]
         entities = ", ".join(pattern.get("entities", [])[:3])
-        
+
         table.add_row(pattern_id, ptype, timestamp, entities)
-    
+
     console.print(table)
     console.print()
 
@@ -426,28 +426,28 @@ def cache_entities():
     config = load_config()
     workspace = Path(config.agents.defaults.workspace).expanduser()
     cache = RelationalCache(workspace)
-    
+
     entities = cache.get_entities()
-    
+
     if not entities:
         console.print("[yellow]No entities found[/yellow]")
         return
-    
+
     console.print(f"\n[bold cyan]Entities[/bold cyan] ({len(entities)} total)")
-    
+
     table = Table(show_header=True, header_style="bold magenta")
     table.add_column("Entity", style="cyan")
     table.add_column("First Seen", style="dim")
     table.add_column("Patterns", justify="right")
     table.add_column("Attributes")
-    
+
     for entity_name, entity_data in entities.items():
         first_seen = entity_data.get("first_seen", "")[:10]
         pattern_count = str(entity_data.get("pattern_count", 0))
         attributes = ", ".join(f"{k}={v}" for k, v in entity_data.get("attributes", {}).items())
-        
+
         table.add_row(entity_name, first_seen, pattern_count, attributes[:40])
-    
+
     console.print(table)
     console.print()
 
@@ -458,19 +458,19 @@ def cache_cycles():
     config = load_config()
     workspace = Path(config.agents.defaults.workspace).expanduser()
     cache = RelationalCache(workspace)
-    
+
     cycles = cache.detect_cycles()
-    
+
     if not cycles:
         console.print("[green]No cycles detected[/green]")
         return
-    
+
     console.print(f"\n[bold yellow]Cycles Detected[/bold yellow] ({len(cycles)} total)")
-    
+
     for i, cycle in enumerate(cycles, 1):
         cycle_str = " → ".join(cycle)
         console.print(f"{i}. {cycle_str}")
-    
+
     console.print()
 
 
@@ -484,28 +484,28 @@ def consolidate(
     """Run memory consolidation pipeline."""
     config = load_config()
     workspace = Path(config.agents.defaults.workspace).expanduser()
-    
+
     # Get memory config if available
     memory_config = {}
     if hasattr(config, 'memory'):
         memory_config = config.memory if isinstance(config.memory, dict) else {}
-    
+
     pipeline = ConsolidationPipeline(workspace, memory_config)
-    
+
     # Parse session IDs if provided
     session_id_list = None
     if session_ids:
         session_id_list = [s.strip() for s in session_ids.split(",")]
-    
+
     console.print("\n[bold cyan]Running Consolidation Pipeline[/bold cyan]")
     console.print("[dim]This may take a moment...[/dim]\n")
-    
+
     try:
         stats = pipeline.run_full_pipeline(
             session_ids=session_id_list,
             archive_sessions=archive
         )
-        
+
         console.print("[bold green]✓ Consolidation Complete[/bold green]\n")
         console.print(f"Sessions Processed: {stats['sessions_processed']}")
         console.print(f"Patterns Extracted: {stats['patterns_extracted']}")
@@ -513,7 +513,7 @@ def consolidate(
         console.print(f"Fractal Nodes Created: {stats['fractal_nodes_created']}")
         console.print(f"Long-term Entries: {stats['long_term_entries']}")
         console.print()
-        
+
     except Exception as e:
         console.print(f"[red]Error during consolidation: {e}[/red]")
 
