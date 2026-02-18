@@ -16,12 +16,12 @@ from nanobot.memory.session_store import SessionStore
 
 app = typer.Typer(help="Memory inspection and management commands")
 sessions_app = typer.Typer(help="Session management commands")
-cache_app = typer.Typer(help="Relational cache commands")
+relational_app = typer.Typer(help="Relational cache commands")
 console = Console()
 
 # Register sub-apps
 app.add_typer(sessions_app, name="sessions")
-app.add_typer(cache_app, name="cache")
+app.add_typer(relational_app, name="relational")
 
 
 def _get_memory_store() -> MemoryStore:
@@ -373,7 +373,7 @@ def sessions_archive(
 
 # ===== Relational Cache Commands =====
 
-@cache_app.command("show")
+@relational_app.command("show")
 def cache_show(
     limit: int = typer.Option(20, help="Number of patterns to show"),
     pattern_type: str = typer.Option(None, "--type", help="Filter by pattern type"),
@@ -423,7 +423,7 @@ def cache_show(
     console.print()
 
 
-@cache_app.command("entities")
+@relational_app.command("entities")
 def cache_entities():
     """Display entities tracked in relational cache."""
     config = load_config()
@@ -456,7 +456,7 @@ def cache_entities():
     console.print()
 
 
-@cache_app.command("cycles")
+@relational_app.command("cycles")
 def cache_cycles():
     """Detect and display relationship cycles."""
     config = load_config()
