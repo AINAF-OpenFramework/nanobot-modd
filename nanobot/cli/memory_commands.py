@@ -478,6 +478,62 @@ def cache_cycles():
     console.print()
 
 
+@relational_app.command("query")
+def cache_query(
+    query: str = typer.Argument(..., help="Natural language query to execute"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed hypotheses"),
+):
+    """Query the relational cache using natural language."""
+    config = load_config()
+    workspace = Path(config.agents.defaults.workspace).expanduser()
+
+    # Get entropy threshold from config
+    memory_config = {}
+    if hasattr(config, 'memory'):
+        memory_config = config.memory if isinstance(config.memory, dict) else {}
+    entropy_threshold = float(memory_config.get("clarify_entropy_threshold", 0.8))
+
+    # Import here to avoid circular dependency
+    from nanobot.memory.hypothesis_engine import HypothesisEngine
+
+    engine = HypothesisEngine(workspace, entropy_threshold=entropy_threshold)
+
+    console.print(f"\n[bold cyan]Query:[/bold cyan] {query}\n")
+
+    result = engine.query(query, verbose=verbose)
+
+    # Display answer
+    confidence_color = "green" if result["confidence"] > 0.7 else "yellow" if result["confidence"] > 0.4 else "red"
+    console.print(f"[bold]Answer:[/bold] {result['answer']}")
+    console.print(f"[bold]Confidence:[/bold] [{confidence_color}]{result['confidence']:.2f}[/{confidence_color}]")
+    console.print(f"[bold]Entropy:[/bold] {result['entropy']:.3f}")
+
+    if result["requires_llm"]:
+        console.print("[yellow]⚠ High entropy - LLM invocation recommended[/yellow]")
+    else:
+        console.print("[green]✓ Low entropy - answer from cache[/green]")
+
+    console.print(f"[dim]Query type: {result['query_type']}[/dim]")
+
+    # Show hypotheses in verbose mode
+    if verbose and "hypotheses" in result:
+        console.print("\n[bold]Hypotheses:[/bold]")
+        for i, hyp in enumerate(result["hypotheses"], 1):
+            console.print(f"\n{i}. [cyan]{hyp['intent']}[/cyan] (confidence: {hyp['confidence']:.2f})")
+            console.print(f"   Reasoning: {hyp['reasoning']}")
+            console.print(f"   Result: {hyp['result']}")
+
+            if "evidence" in hyp:
+                evidence = hyp["evidence"]
+                console.print(f"   Evidence type: {evidence.get('type', 'unknown')}")
+
+        if "cache_stats" in result:
+            stats = result["cache_stats"]
+            console.print(f"\n[dim]Cache: {stats['entities']} entities, {stats['relationships']} relationships[/dim]")
+
+    console.print()
+
+
 # ===== Consolidation Commands =====
 
 @app.command()
