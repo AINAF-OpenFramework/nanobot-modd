@@ -12,9 +12,25 @@ from urllib.parse import urlparse
 import litellm
 from litellm import acompletion
 
-from nanobot.agent.latent import latent_enabled
 from nanobot.providers.base import LLMProvider, LLMResponse, ToolCallRequest
 from nanobot.providers.registry import find_by_model, find_gateway
+
+
+def _latent_enabled() -> bool:
+    """
+    Check if latent reasoning is enabled.
+    
+    This is a local helper to avoid circular imports.
+    The actual gate logic is in nanobot.agent.latent.latent_enabled().
+    """
+    from nanobot.runtime.state import state
+    
+    # Baseline mode always disables latent reasoning
+    if state.baseline_active:
+        return False
+    
+    # Check the runtime toggle
+    return state.latent_reasoning_enabled
 
 
 class LiteLLMProvider(LLMProvider):
@@ -134,7 +150,7 @@ class LiteLLMProvider(LLMProvider):
         prepared_messages = copy.deepcopy(messages)
 
         # Use centralized latent gate for reasoning mode
-        if latent_enabled():
+        if _latent_enabled():
             max_tokens = max(max_tokens, 1024)
             for msg in prepared_messages:
                 if msg.get("role") == "system":
