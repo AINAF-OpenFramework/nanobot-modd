@@ -133,16 +133,22 @@ class TestContextBuilderRespectStages:
         
         context = ContextBuilder(temp_workspace)
         
-        # With bootstrap enabled
-        state.enable_context_stage("bootstrap")
-        state.triune_memory_enabled = True
-        prompt = context.build_system_prompt()
-        assert "Test Bootstrap" in prompt
+        # Save original triune state
+        original_triune = state.triune_memory_enabled
         
-        # With bootstrap disabled
-        state.disable_context_stage("bootstrap")
-        prompt = context.build_system_prompt()
-        assert "Test Bootstrap" not in prompt
+        try:
+            # With bootstrap enabled
+            state.enable_context_stage("bootstrap")
+            state.triune_memory_enabled = True
+            prompt = context.build_system_prompt()
+            assert "Test Bootstrap" in prompt
+            
+            # With bootstrap disabled
+            state.disable_context_stage("bootstrap")
+            prompt = context.build_system_prompt()
+            assert "Test Bootstrap" not in prompt
+        finally:
+            state.triune_memory_enabled = original_triune
 
     def test_latent_state_stage_toggle(self, temp_workspace, save_and_restore_state):
         """Test that latent_state stage can be disabled."""
@@ -152,16 +158,22 @@ class TestContextBuilderRespectStages:
             '"entropy":0.1,"strategic_direction":"go"}'
         )
         
-        # With latent_state enabled
-        state.enable_context_stage("latent_state")
-        state.latent_reasoning_enabled = True
-        prompt = context.build_system_prompt(latent_state=latent_state)
-        assert "<latent_state>" in prompt
+        # Save original latent reasoning state
+        original_latent = state.latent_reasoning_enabled
         
-        # With latent_state disabled
-        state.disable_context_stage("latent_state")
-        prompt = context.build_system_prompt(latent_state=latent_state)
-        assert "<latent_state>" not in prompt
+        try:
+            # With latent_state enabled
+            state.enable_context_stage("latent_state")
+            state.latent_reasoning_enabled = True
+            prompt = context.build_system_prompt(latent_state=latent_state)
+            assert "<latent_state>" in prompt
+            
+            # With latent_state disabled
+            state.disable_context_stage("latent_state")
+            prompt = context.build_system_prompt(latent_state=latent_state)
+            assert "<latent_state>" not in prompt
+        finally:
+            state.latent_reasoning_enabled = original_latent
 
     def test_core_memory_stage_toggle(self, temp_workspace, save_and_restore_state, monkeypatch):
         """Test that core_memory stage can be disabled."""

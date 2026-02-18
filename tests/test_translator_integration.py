@@ -17,6 +17,7 @@ from nanobot.utils.translator import parse_md_to_yaml, sync_all
 def ensure_bootstrap_enabled():
     """Ensure bootstrap context stage is enabled for tests."""
     original = state.get_context_stages()
+    original_triune = state.triune_memory_enabled
     state.enable_context_stage("bootstrap")
     state.triune_memory_enabled = True
     yield
@@ -26,6 +27,7 @@ def ensure_bootstrap_enabled():
             state.enable_context_stage(stage_name)
         else:
             state.disable_context_stage(stage_name)
+    state.triune_memory_enabled = original_triune
 
 
 class TestContextBuilderYamlIntegration:
