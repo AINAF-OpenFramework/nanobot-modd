@@ -64,7 +64,7 @@ def status():
 @app.command()
 def list_hypotheses(
     limit: int = typer.Option(10, help="Number of entries to show"),
-    show_high_entropy: bool = typer.Option(False, "--high-entropy", help="Show only high entropy entries"),
+    high_entropy: bool = typer.Option(False, "--high-entropy", help="Show only high entropy entries"),
 ):
     """List hypotheses from pattern cache with entropy information."""
     memory = _get_memory_store()
@@ -78,7 +78,7 @@ def list_hypotheses(
     # Get threshold for highlighting
     threshold = float(memory.config.get("clarify_entropy_threshold", 0.8))
 
-    if show_high_entropy:
+    if high_entropy:
         entries = [e for e in entries if e.get("entropy", 0.0) >= threshold]
 
     entries = entries[:limit]

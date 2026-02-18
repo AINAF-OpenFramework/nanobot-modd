@@ -8,43 +8,48 @@ from typing import Any
 class AsyncFileLock:
     """
     Async-safe file locking to prevent races when multiple tasks update memory.
-    
+
     Uses asyncio.Lock for async-safe locking within a single process.
     For multi-process scenarios, consider using fcntl (Unix) or msvcrt (Windows).
     """
-    
+
     _locks: dict[str, asyncio.Lock] = {}
-    _locks_lock = asyncio.Lock()
-    
+    _locks_lock: asyncio.Lock | None = None
+
     def __init__(self, file_path: Path | str):
         """
         Initialize lock for a specific file.
-        
+
         Args:
             file_path: Path to the file to lock
         """
         self.file_path = Path(file_path)
         self.lock_key = str(self.file_path.resolve())
-    
+
     async def __aenter__(self):
         """Acquire the lock."""
+        # Initialize locks lock lazily on first use
+        if self._locks_lock is None:
+            AsyncFileLock._locks_lock = asyncio.Lock()
+
         # Get or create lock for this file
         async with self._locks_lock:
             if self.lock_key not in self._locks:
                 self._locks[self.lock_key] = asyncio.Lock()
             lock = self._locks[self.lock_key]
-        
+
         await lock.acquire()
         return self
-    
+
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Release the lock."""
-        async with self._locks_lock:
-            lock = self._locks.get(self.lock_key)
-        
-        if lock and lock.locked():
-            lock.release()
-        
+        if self._locks_lock is not None:
+            async with self._locks_lock:
+                lock = self._locks.get(self.lock_key)
+
+            if lock and lock.locked():
+                lock.release()
+
         return False
 
 

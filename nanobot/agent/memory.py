@@ -625,8 +625,9 @@ class MemoryStore:
         self.append_long_term(teaching_entry)
 
         # Append to HISTORY.md
-        history_entry = f"[{timestamp.strftime('%Y-%m-%d %H:%M')}] User message: {user_message[:100]}..."
+        history_entry = f"[{timestamp.strftime('%Y-%m-%d %H:%M')}] User message: {user_message[:100]}"
         if len(user_message) > 100:
+            history_entry += "..."
             history_entry += f"\nLatent reasoning: entropy={entropy:.3f}, hypotheses={len(hypotheses)}"
         self.append_history(history_entry)
 

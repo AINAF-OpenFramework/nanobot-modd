@@ -27,23 +27,31 @@ class ProviderOutputNormalizer:
 
     @staticmethod
     def strip_markdown(text: str) -> str:
-        """Remove markdown code fences from text."""
+        """Remove markdown code fences from text.
+
+        Handles:
+        - ```json ... ```
+        - ``` ... ```
+        - Mixed whitespace
+        """
         if not text:
             return text
 
-        # Remove opening fence (```json or ```)
         text = text.strip()
+
+        # Remove opening fence (```json or ```)
         if text.startswith("```"):
             # Find first newline after opening fence
-            lines = text.split("\n", 1)
-            if len(lines) > 1:
-                text = lines[1]
+            newline_pos = text.find("\n")
+            if newline_pos != -1:
+                text = text[newline_pos + 1:]
             else:
-                text = text[3:]  # Just remove ```
+                # No newline, just strip the backticks
+                text = text.lstrip("`").lstrip("json").lstrip()
 
         # Remove closing fence
         if text.endswith("```"):
-            text = text[:-3]
+            text = text[:-3].rstrip()
 
         return text.strip()
 
