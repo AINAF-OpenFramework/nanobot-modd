@@ -175,19 +175,15 @@ class ConsolidationPipeline:
             # Build lesson content from patterns
             lesson_content = self._build_lesson_from_patterns(pattern_type, group_patterns)
             
-            # Create fractal node via MemoryStore
-            node = FractalNode(
-                lesson=lesson_content,
+            # Save via MemoryStore (which creates and returns a FractalNode)
+            node = self.memory_store.save_fractal_node(
+                content=lesson_content,
                 tags=[pattern_type, "consolidated", "relational"],
-                content_type=ContentType.TEXT,
-                timestamp=datetime.now(timezone.utc),
-                depth=1,
-                summary=f"Consolidated {pattern_type} patterns ({len(group_patterns)} patterns)"
+                summary=f"Consolidated {pattern_type} patterns ({len(group_patterns)} patterns)",
+                content_type=ContentType.TEXT
             )
             
-            # Save via MemoryStore
-            node_id = self.memory_store.save_fractal_node(node)
-            created_nodes.append(node_id)
+            created_nodes.append(node.id)
         
         return created_nodes
     
@@ -211,7 +207,7 @@ class ConsolidationPipeline:
                 query="consolidated relational",
                 k=10
             )
-            node_ids = [node.lesson[:50] for node in recent_nodes]  # Approximate IDs
+            node_ids = [node.id for node in recent_nodes]
         
         # Build consolidated memory entry
         for node_id in node_ids:
@@ -224,7 +220,7 @@ class ConsolidationPipeline:
                 
                 if nodes:
                     node = nodes[0]
-                    content = node.summary if summary_only else node.lesson
+                    content = node.context_summary if summary_only else node.content
                     
                     # Append to long-term memory
                     timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
