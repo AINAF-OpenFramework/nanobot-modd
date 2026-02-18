@@ -46,7 +46,7 @@ def test_consolidate_interaction_events(pipeline, session_store):
     """Test consolidating interaction events from a session."""
     session_id = "test_interaction"
     session_store.start(session_id=session_id)
-    
+
     # Add interaction events
     session_store.append_event(
         session_id,
@@ -56,10 +56,10 @@ def test_consolidate_interaction_events(pipeline, session_store):
             "agent_response": "I'll check the weather for you."
         }
     )
-    
+
     # Consolidate
     result = pipeline.consolidate_session(session_id)
-    
+
     assert result["patterns_added"] == 1
     assert result["relationships_added"] == 0
 
@@ -68,7 +68,7 @@ def test_consolidate_reasoning_events(pipeline, session_store):
     """Test consolidating reasoning events from a session."""
     session_id = "test_reasoning"
     session_store.start(session_id=session_id)
-    
+
     # Add reasoning events
     session_store.append_event(
         session_id,
@@ -81,10 +81,10 @@ def test_consolidate_reasoning_events(pipeline, session_store):
             "strategic_direction": "Provide weather information"
         }
     )
-    
+
     # Consolidate
     result = pipeline.consolidate_session(session_id)
-    
+
     assert result["patterns_added"] == 1
 
 
@@ -92,7 +92,7 @@ def test_consolidate_entity_relationships(pipeline, session_store, cache):
     """Test consolidating entity relationship events."""
     session_id = "test_entities"
     session_store.start(session_id=session_id)
-    
+
     # Add entity relationship events
     session_store.append_event(
         session_id,
@@ -104,12 +104,12 @@ def test_consolidate_entity_relationships(pipeline, session_store, cache):
             "properties": {}
         }
     )
-    
+
     # Consolidate
     result = pipeline.consolidate_session(session_id)
-    
+
     assert result["relationships_added"] == 1
-    
+
     # Verify in cache
     rels = cache.get_entity_relationships("Alice")
     assert len(rels) == 1
@@ -120,7 +120,7 @@ def test_consolidate_entity_attributes(pipeline, session_store, cache):
     """Test consolidating entity attribute events."""
     session_id = "test_attributes"
     session_store.start(session_id=session_id)
-    
+
     # Add entity attribute events
     session_store.append_event(
         session_id,
@@ -131,7 +131,7 @@ def test_consolidate_entity_attributes(pipeline, session_store, cache):
             "value": 165
         }
     )
-    
+
     session_store.append_event(
         session_id,
         "entity_attribute",
@@ -141,15 +141,15 @@ def test_consolidate_entity_attributes(pipeline, session_store, cache):
             "value": 180
         }
     )
-    
+
     # Consolidate
     pipeline.consolidate_session(session_id)
-    
+
     # Verify attributes in cache
     entities = cache.get_entities()
     assert entities["Alice"]["attributes"]["height"] == 165
     assert entities["Bob"]["attributes"]["height"] == 180
-    
+
     # Verify statistics
     stats = cache.get_statistics()
     assert stats["tallest"]["entity"] == "Bob"
@@ -161,14 +161,14 @@ def test_consolidate_with_archive(pipeline, session_store):
     session_id = "test_archive"
     session_store.start(session_id=session_id)
     session_store.append_event(session_id, "interaction", {"test": "data"})
-    
+
     # Consolidate with archive
     pipeline.consolidate_session(session_id, archive_after=True)
-    
+
     # Verify session was archived
     sessions = session_store.list_sessions(include_archived=False)
     assert not any(s["session_id"] == session_id for s in sessions)
-    
+
     # But should still be in archived list
     archived = session_store.list_sessions(include_archived=True)
     assert any(s["session_id"] == session_id and s["archived"] for s in archived)
@@ -178,29 +178,29 @@ def test_consolidate_multiple_events(pipeline, session_store):
     """Test consolidating a session with multiple event types."""
     session_id = "test_multiple"
     session_store.start(session_id=session_id)
-    
+
     # Add various events
     session_store.append_event(
         session_id,
         "interaction",
         {"user_message": "Hello", "agent_response": "Hi"}
     )
-    
+
     session_store.append_event(
         session_id,
         "reasoning",
         {"hypotheses": [], "entropy": 0.5, "strategic_direction": "Greet"}
     )
-    
+
     session_store.append_event(
         session_id,
         "entity_relation",
         {"source": "A", "target": "B", "relation_type": "related"}
     )
-    
+
     # Consolidate
     result = pipeline.consolidate_session(session_id, extract_entities=True)
-    
+
     assert result["patterns_added"] == 2  # interaction + reasoning
     assert result["relationships_added"] == 1
 
@@ -213,10 +213,10 @@ def test_consolidate_patterns_to_fractal(pipeline, cache):
             "interaction",
             {"message": f"test message {i}"}
         )
-    
+
     # Consolidate to fractal
     created_nodes = pipeline.consolidate_patterns_to_fractal(min_pattern_count=3)
-    
+
     # Should create at least one node for interaction patterns
     assert len(created_nodes) > 0
 
@@ -226,10 +226,10 @@ def test_consolidate_patterns_below_threshold(pipeline, cache):
     # Add only 2 patterns (below min_pattern_count=3)
     cache.add_pattern("test_type", {"data": "1"})
     cache.add_pattern("test_type", {"data": "2"})
-    
+
     # Try to consolidate
     created_nodes = pipeline.consolidate_patterns_to_fractal(min_pattern_count=3)
-    
+
     # Should not create any nodes
     assert len(created_nodes) == 0
 
@@ -238,32 +238,32 @@ def test_full_pipeline_single_session(pipeline, session_store, cache):
     """Test running the full consolidation pipeline on a single session."""
     session_id = "full_pipeline_test"
     session_store.start(session_id=session_id)
-    
+
     # Add various events
     session_store.append_event(
         session_id,
         "interaction",
         {"user_message": "Test", "agent_response": "Response"}
     )
-    
+
     session_store.append_event(
         session_id,
         "entity_attribute",
         {"entity": "Alice", "attribute": "height", "value": 165}
     )
-    
+
     session_store.append_event(
         session_id,
         "entity_attribute",
         {"entity": "Bob", "attribute": "height", "value": 180}
     )
-    
+
     # Run full pipeline
     stats = pipeline.run_full_pipeline(session_ids=[session_id])
-    
+
     assert stats["sessions_processed"] == 1
     assert stats["patterns_extracted"] >= 1
-    
+
     # Verify tallest/shortest were tracked
     cache_stats = cache.get_statistics()
     assert cache_stats["tallest"]["entity"] == "Bob"
@@ -281,10 +281,10 @@ def test_full_pipeline_multiple_sessions(pipeline, session_store):
             "interaction",
             {"user_message": f"Message {i}", "agent_response": "Response"}
         )
-    
+
     # Run pipeline on all sessions
     stats = pipeline.run_full_pipeline()
-    
+
     assert stats["sessions_processed"] == 3
     assert stats["patterns_extracted"] == 3
 
@@ -294,10 +294,10 @@ def test_full_pipeline_with_archive(pipeline, session_store):
     session_id = "pipeline_archive_test"
     session_store.start(session_id=session_id)
     session_store.append_event(session_id, "interaction", {"test": "data"})
-    
+
     # Run pipeline with archive
     pipeline.run_full_pipeline(session_ids=[session_id], archive_sessions=True)
-    
+
     # Verify archived
     sessions = session_store.list_sessions(include_archived=False)
     assert not any(s["session_id"] == session_id for s in sessions)
@@ -319,17 +319,17 @@ def test_tallest_shortest_persistence_through_pipeline(temp_workspace):
         "entity_attribute",
         {"entity": "Bob", "attribute": "height", "value": 180}
     )
-    
+
     # Consolidate session 1
     pipeline1 = ConsolidationPipeline(temp_workspace)
     pipeline1.consolidate_session(session1)
-    
+
     # Verify initial tallest/shortest
     cache1 = RelationalCache(temp_workspace)
     stats1 = cache1.get_statistics()
     assert stats1["tallest"]["entity"] == "Bob"
     assert stats1["shortest"]["entity"] == "Alice"
-    
+
     # Session 2: Add new tallest person
     store2 = SessionStore(temp_workspace)
     session2 = "height_session_2"
@@ -339,17 +339,17 @@ def test_tallest_shortest_persistence_through_pipeline(temp_workspace):
         "entity_attribute",
         {"entity": "Charlie", "attribute": "height", "value": 190}
     )
-    
+
     # Consolidate session 2
     pipeline2 = ConsolidationPipeline(temp_workspace)
     pipeline2.consolidate_session(session2)
-    
+
     # Verify updated tallest
     cache2 = RelationalCache(temp_workspace)
     stats2 = cache2.get_statistics()
     assert stats2["tallest"]["entity"] == "Charlie"
     assert stats2["shortest"]["entity"] == "Alice"
-    
+
     # Session 3: Add new shortest person
     store3 = SessionStore(temp_workspace)
     session3 = "height_session_3"
@@ -359,11 +359,11 @@ def test_tallest_shortest_persistence_through_pipeline(temp_workspace):
         "entity_attribute",
         {"entity": "Diana", "attribute": "height", "value": 155}
     )
-    
+
     # Consolidate session 3
     pipeline3 = ConsolidationPipeline(temp_workspace)
     pipeline3.consolidate_session(session3)
-    
+
     # Verify final tallest/shortest
     cache3 = RelationalCache(temp_workspace)
     stats3 = cache3.get_statistics()
@@ -377,7 +377,7 @@ def test_cycle_detection_through_sessions(temp_workspace):
     """Test that relationship cycles can be detected after session consolidation."""
     store = SessionStore(temp_workspace)
     pipeline = ConsolidationPipeline(temp_workspace)
-    
+
     # Create session with relationships that form a cycle
     session_id = "cycle_test"
     store.start(session_id=session_id)
@@ -396,14 +396,14 @@ def test_cycle_detection_through_sessions(temp_workspace):
         "entity_relation",
         {"source": "C", "target": "A", "relation_type": "points_to"}
     )
-    
+
     # Consolidate
     pipeline.consolidate_session(session_id)
-    
+
     # Check for cycles
     cache = RelationalCache(temp_workspace)
     cycles = cache.detect_cycles()
-    
+
     assert len(cycles) > 0
     cycle_entities = set(cycles[0])
     assert cycle_entities == {"A", "B", "C"}
@@ -413,10 +413,10 @@ def test_pipeline_handles_empty_sessions(pipeline, session_store):
     """Test that pipeline gracefully handles sessions with no events."""
     session_id = "empty_session"
     session_store.start(session_id=session_id)
-    
+
     # Consolidate empty session
     result = pipeline.consolidate_session(session_id)
-    
+
     assert result["patterns_added"] == 0
     assert result["relationships_added"] == 0
 
@@ -425,16 +425,16 @@ def test_pipeline_handles_unknown_event_types(pipeline, session_store):
     """Test that pipeline handles unknown event types gracefully."""
     session_id = "unknown_events"
     session_store.start(session_id=session_id)
-    
+
     # Add event with unknown type
     session_store.append_event(
         session_id,
         "unknown_type",
         {"data": "should be ignored"}
     )
-    
+
     # Should not crash
     result = pipeline.consolidate_session(session_id)
-    
+
     assert result["patterns_added"] == 0
     assert result["relationships_added"] == 0

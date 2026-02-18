@@ -293,11 +293,12 @@ def sessions_list(
 
     for session in sessions:
         session_id = session["session_id"]
-        created = session["created_at"][:16] if session["created_at"] else "unknown"
+        created = session["created_at"]
+        created_str = created[:16] if created and len(created) >= 16 else (created or "unknown")
         event_count = str(session["event_count"])
         status = "[yellow]archived[/yellow]" if session["archived"] else "[green]active[/green]"
 
-        table.add_row(session_id, created, event_count, status)
+        table.add_row(session_id, created_str, event_count, status)
 
     console.print(table)
     console.print()
@@ -331,11 +332,12 @@ def sessions_inspect(
         console.print(f"\n[bold]Events[/bold] ({len(events)} shown)")
 
         for i, event in enumerate(events, 1):
-            timestamp = event.get("timestamp", "")[:19]
+            timestamp = event.get("timestamp", "")
+            timestamp_str = timestamp[:19] if timestamp and len(timestamp) >= 19 else timestamp
             event_type_str = event.get("type", "unknown")
             payload = event.get("payload", {})
 
-            console.print(f"\n[bold]{i}. [{timestamp}] {event_type_str}[/bold]")
+            console.print(f"\n[bold]{i}. [{timestamp_str}] {event_type_str}[/bold]")
 
             # Show payload preview
             if isinstance(payload, dict):
@@ -411,10 +413,11 @@ def cache_show(
     for pattern in patterns:
         pattern_id = str(pattern.get("id", ""))
         ptype = pattern.get("type", "unknown")
-        timestamp = pattern.get("timestamp", "")[:16]
+        timestamp = pattern.get("timestamp", "")
+        timestamp_str = timestamp[:16] if timestamp and len(timestamp) >= 16 else timestamp
         entities = ", ".join(pattern.get("entities", [])[:3])
 
-        table.add_row(pattern_id, ptype, timestamp, entities)
+        table.add_row(pattern_id, ptype, timestamp_str, entities)
 
     console.print(table)
     console.print()
@@ -442,11 +445,12 @@ def cache_entities():
     table.add_column("Attributes")
 
     for entity_name, entity_data in entities.items():
-        first_seen = entity_data.get("first_seen", "")[:10]
+        first_seen = entity_data.get("first_seen", "")
+        first_seen_str = first_seen[:10] if first_seen and len(first_seen) >= 10 else first_seen
         pattern_count = str(entity_data.get("pattern_count", 0))
         attributes = ", ".join(f"{k}={v}" for k, v in entity_data.get("attributes", {}).items())
 
-        table.add_row(entity_name, first_seen, pattern_count, attributes[:40])
+        table.add_row(entity_name, first_seen_str, pattern_count, attributes[:40])
 
     console.print(table)
     console.print()

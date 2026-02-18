@@ -309,7 +309,7 @@ class RelationalCache:
         stats = cache["statistics"]
 
         # Update tallest
-        if stats["tallest"] is None or height > stats["tallest"].get("height", 0):
+        if stats["tallest"] is None or height > stats["tallest"].get("height", float('-inf')):
             stats["tallest"] = {"entity": entity, "height": height}
 
         # Update shortest
