@@ -10,6 +10,7 @@ from loguru import logger
 from pydantic import ValidationError
 from tenacity import AsyncRetrying, retry_if_exception_type, stop_after_attempt, wait_exponential
 
+from nanobot.agent.latent_parser import ProviderOutputNormalizer
 from nanobot.agent.memory_types import Hypothesis, SuperpositionalState
 from nanobot.middleware.circuit_breaker import CircuitBreaker, CircuitOpenError
 from nanobot.providers.base import LLMProvider
@@ -216,78 +217,41 @@ class LatentReasoner:
         """
         Parse hypotheses from LLM response with robust error handling.
         
-        Handles:
+        Uses ProviderOutputNormalizer to handle:
         - Empty responses
         - Malformed JSON
+        - Markdown fences
+        - Alternative key names (Ollama/OpenAI/Anthropic variations)
         - Missing fields
-        - Unexpected data types
         """
         if not payload or not payload.strip():
             logger.warning("Latent reasoning: empty response from model")
             return []
         
-        # Strip markdown code blocks
-        if payload.startswith("```"):
-            payload = payload.removeprefix("```json").removeprefix("```").strip()
-            if payload.endswith("```"):
-                payload = payload[:-3].strip()
-        
         try:
-            parsed = json.loads(payload)
-        except JSONDecodeError as e:
-            logger.warning(
-                f"Latent reasoning: JSON parse error - {e}. "
-                f"Response (truncated): {payload[:200]}..."
-            )
-            return []
-        
-        # Handle different response structures
-        if not isinstance(parsed, dict):
-            logger.warning(
-                f"Latent reasoning: expected dict, got {type(parsed).__name__}. "
-                f"Response (truncated): {str(parsed)[:200]}..."
-            )
-            return []
-        
-        if "hypotheses" in parsed:
-            hypotheses_data = parsed["hypotheses"]
-        elif all(k in parsed for k in ("intent", "confidence")):
-            hypotheses_data = [parsed]
-        else:
-            logger.warning(
-                f"Latent reasoning: no hypotheses found in response. "
-                f"Keys: {list(parsed.keys())}"
-            )
-            return []
-        
-        if not isinstance(hypotheses_data, list):
-            logger.warning(
-                f"Latent reasoning: hypotheses should be list, got {type(hypotheses_data).__name__}"
-            )
-            return []
-        
-        hypotheses = []
-        for item in hypotheses_data:
-            if not isinstance(item, dict):
-                continue
+            # Use the robust normalizer
+            normalized = ProviderOutputNormalizer.parse_and_normalize_safe(payload)
             
-            try:
-                confidence = float(item.get("confidence", 0.0))
-                hypotheses.append(
-                    Hypothesis(
-                        intent=str(item.get("intent", "unknown")),
-                        confidence=max(confidence, 0.0),
-                        reasoning=str(item.get("reasoning", "latent inference")),
-                    )
+            # Convert normalized dicts to Hypothesis objects
+            hypotheses = []
+            for hyp_dict in normalized.get("hypotheses", []):
+                try:
+                    hypotheses.append(Hypothesis(**hyp_dict))
+                except ValidationError as e:
+                    logger.debug(f"Latent reasoning: skipping invalid hypothesis - {e}")
+                    continue
+            
+            if not hypotheses:
+                logger.warning(
+                    "Latent reasoning: no valid hypotheses after normalization. "
+                    f"Response (truncated): {payload[:200]}..."
                 )
-            except (ValueError, TypeError, ValidationError) as e:
-                logger.debug(f"Latent reasoning: skipping invalid hypothesis - {e}")
-                continue
-        
-        if not hypotheses:
-            logger.warning("Latent reasoning: no valid hypotheses parsed from response")
-        
-        return hypotheses
+            
+            return hypotheses
+            
+        except Exception as e:
+            logger.warning(f"Latent reasoning: failed to parse hypotheses - {e}")
+            return []
 
     def _score_hypothesis(self, hypothesis: Hypothesis) -> float:
         """Centralized hypothesis scoring hook for consistent beam pruning."""

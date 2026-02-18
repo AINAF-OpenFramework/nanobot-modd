@@ -54,6 +54,9 @@ class MemoryStore:
         self.archives_dir = ensure_dir(self.memory_dir / "archives")
         self.index_file = self.memory_dir / "fractal_index.json"
         self.als_file = self.memory_dir / "ALS.json"
+        
+        # Pattern Cache for high-entropy latent states
+        self.pattern_cache_file = self.memory_dir / "pattern_cache.jsonl"
 
         # mem0 provider (optional)
         self._mem0_provider = None
@@ -127,6 +130,11 @@ class MemoryStore:
 
     def write_long_term(self, content: str) -> None:
         self.memory_file.write_text(content, encoding="utf-8")
+    
+    def append_long_term(self, content: str) -> None:
+        """Append to long-term memory (teaching flow entries)."""
+        with open(self.memory_file, "a", encoding="utf-8") as f:
+            f.write("\n" + content.rstrip() + "\n")
 
     def append_history(self, entry: str) -> None:
         with open(self.history_file, "a", encoding="utf-8") as f:
@@ -574,6 +582,180 @@ class MemoryStore:
 
         except Exception as e:
             logger.error(f"Error updating ALS: {e}")
+
+    # --- NEW: Entropy-Based Routing Methods ---
+
+    def route_latent_state(
+        self,
+        user_message: str,
+        hypotheses: list[dict[str, Any]],
+        entropy: float,
+        strategic_direction: str,
+        model: str | None = None,
+        provider: str | None = None,
+    ) -> None:
+        """
+        Route latent reasoning state based on entropy threshold.
+        
+        - Always appends teaching flow to MEMORY.md
+        - Always appends timestamped entry to HISTORY.md
+        - Routes to Fractal Memory if entropy < threshold (low entropy = clear intent)
+        - Routes to Pattern Cache otherwise (high entropy = ambiguous)
+        - Updates ALS with routing decision
+        
+        Args:
+            user_message: The user's input message
+            hypotheses: List of hypothesis dicts (intent, confidence, reasoning)
+            entropy: Calculated entropy value
+            strategic_direction: Strategic direction from reasoning
+            model: Model name (optional, for metadata)
+            provider: Provider name (optional, for metadata)
+        """
+        from datetime import datetime
+        
+        threshold = float(self.config.get("clarify_entropy_threshold", 0.8))
+        timestamp = datetime.now()
+        
+        # Format teaching flow entry for MEMORY.md
+        teaching_entry = self._format_teaching_flow(
+            timestamp, user_message, hypotheses, entropy, strategic_direction
+        )
+        
+        # Append to MEMORY.md
+        self.append_long_term(teaching_entry)
+        
+        # Append to HISTORY.md
+        history_entry = f"[{timestamp.strftime('%Y-%m-%d %H:%M')}] User message: {user_message[:100]}..."
+        if len(user_message) > 100:
+            history_entry += f"\nLatent reasoning: entropy={entropy:.3f}, hypotheses={len(hypotheses)}"
+        self.append_history(history_entry)
+        
+        # Route based on entropy
+        if entropy < threshold:
+            # Low entropy -> Fractal Memory (clear, structured intent)
+            self._route_to_fractal(user_message, hypotheses, entropy, strategic_direction)
+            destination = "fractal_memory"
+            logger.info(f"Routed to Fractal Memory: entropy={entropy:.3f} < threshold={threshold}")
+        else:
+            # High entropy -> Pattern Cache (ambiguous, uncertain)
+            self._route_to_pattern_cache(
+                user_message, hypotheses, entropy, strategic_direction, model, provider
+            )
+            destination = "pattern_cache"
+            logger.info(f"Routed to Pattern Cache: entropy={entropy:.3f} >= threshold={threshold}")
+        
+        # Update ALS with routing decision
+        reflection = (
+            f"Latent routing: {destination} (entropy={entropy:.3f}, threshold={threshold}). "
+            f"Strategic direction: {strategic_direction[:50]}..."
+        )
+        self.update_als(reflection=reflection)
+
+    def _format_teaching_flow(
+        self,
+        timestamp: Any,
+        user_message: str,
+        hypotheses: list[dict[str, Any]],
+        entropy: float,
+        strategic_direction: str,
+    ) -> str:
+        """Format a teaching flow entry for MEMORY.md."""
+        entry = f"\n## Teaching Flow - {timestamp.strftime('%Y-%m-%d %H:%M')}\n"
+        entry += f"User: {user_message}\n\n"
+        entry += f"**Latent Reasoning** (entropy={entropy:.3f}):\n"
+        for i, hyp in enumerate(hypotheses, 1):
+            entry += f"{i}. {hyp.get('intent', 'unknown')} (confidence={hyp.get('confidence', 0.0):.2f})\n"
+            if reasoning := hyp.get('reasoning'):
+                entry += f"   - {reasoning}\n"
+        entry += f"\n**Strategic Direction**: {strategic_direction}\n"
+        return entry
+
+    def _route_to_fractal(
+        self,
+        user_message: str,
+        hypotheses: list[dict[str, Any]],
+        entropy: float,
+        strategic_direction: str,
+    ) -> None:
+        """Route low-entropy state to Fractal Memory."""
+        # Extract tags from top hypothesis
+        tags = ["latent-reasoning", "low-entropy"]
+        if hypotheses:
+            top_intent = hypotheses[0].get("intent", "")
+            # Simple tag extraction from intent
+            tags.extend(top_intent.lower().split()[:3])
+        
+        # Create summary
+        summary = f"Low-entropy latent state (ε={entropy:.3f}): {strategic_direction[:80]}"
+        
+        # Save as fractal node
+        content = f"User message: {user_message}\n\n"
+        content += f"Strategic direction: {strategic_direction}\n\n"
+        content += "Hypotheses:\n"
+        for hyp in hypotheses:
+            content += f"- {hyp.get('intent', 'unknown')} ({hyp.get('confidence', 0.0):.2f})\n"
+        
+        self.save_fractal_node(
+            content=content,
+            tags=tags,
+            summary=summary,
+        )
+
+    def _route_to_pattern_cache(
+        self,
+        user_message: str,
+        hypotheses: list[dict[str, Any]],
+        entropy: float,
+        strategic_direction: str,
+        model: str | None,
+        provider: str | None,
+    ) -> None:
+        """Route high-entropy state to Pattern Cache."""
+        from datetime import datetime
+        
+        record = {
+            "timestamp": datetime.now().isoformat(),
+            "user_message": user_message,
+            "hypotheses": hypotheses,
+            "entropy": entropy,
+            "strategic_direction": strategic_direction,
+        }
+        
+        # Add model/provider metadata if available
+        if model:
+            record["model"] = model
+        if provider:
+            record["provider"] = provider
+        
+        # Append to pattern cache (JSONL format)
+        with open(self.pattern_cache_file, "a", encoding="utf-8") as f:
+            f.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+    def get_pattern_cache_entries(self, limit: int = 10) -> list[dict[str, Any]]:
+        """
+        Retrieve recent entries from pattern cache.
+        
+        Args:
+            limit: Maximum number of entries to return (most recent first)
+            
+        Returns:
+            List of pattern cache records
+        """
+        if not self.pattern_cache_file.exists():
+            return []
+        
+        entries = []
+        with open(self.pattern_cache_file, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    try:
+                        entries.append(json.loads(line))
+                    except json.JSONDecodeError as e:
+                        logger.warning(f"Invalid JSON in pattern cache: {e}")
+        
+        # Return most recent first
+        return entries[-limit:][::-1]
 
     # --- NEW: Hierarchical Navigation Methods ---
 
