@@ -16,7 +16,6 @@ from nanobot.middleware.circuit_breaker import CircuitBreaker, CircuitOpenError
 from nanobot.providers.base import LLMProvider
 from nanobot.runtime.state import state
 
-
 # Track whether we've logged the disabled message this session
 _latent_disabled_logged = False
 
@@ -24,33 +23,33 @@ _latent_disabled_logged = False
 def latent_enabled() -> bool:
     """
     Centralized gate function for latent reasoning.
-    
+
     Returns False if:
     - Baseline mode is active (highest priority)
     - state.latent_reasoning_enabled is False
-    
+
     This is the single source of truth for whether latent reasoning
     should execute. All latent reasoning entry points must check this gate.
-    
+
     Returns:
         True if latent reasoning should execute, False otherwise.
     """
     global _latent_disabled_logged
-    
+
     # Baseline mode always disables latent reasoning
     if state.baseline_active:
         if not _latent_disabled_logged:
             logger.info("Latent reasoning disabled: baseline mode active")
             _latent_disabled_logged = True
         return False
-    
+
     # Check the runtime toggle
     if not state.latent_reasoning_enabled:
         if not _latent_disabled_logged:
             logger.info("Latent reasoning disabled for this session")
             _latent_disabled_logged = True
         return False
-    
+
     return True
 
 
@@ -105,14 +104,14 @@ class LatentReasoner:
     async def reason(self, user_message: str, context_summary: str) -> SuperpositionalState:
         """
         Perform latent reasoning to generate hypotheses about user intent.
-        
+
         Returns a fallback SuperpositionalState if latent reasoning is disabled
         or if an error occurs.
         """
         # Check the centralized gate first
         if not latent_enabled():
             return self._fallback_state()
-        
+
         fallback_state = self._fallback_state()
         try:
             return await self.circuit_breaker.call(
@@ -216,7 +215,7 @@ class LatentReasoner:
     def _parse_hypotheses(self, payload: str) -> list[Hypothesis]:
         """
         Parse hypotheses from LLM response with robust error handling.
-        
+
         Uses ProviderOutputNormalizer to handle:
         - Empty responses
         - Malformed JSON
@@ -227,11 +226,11 @@ class LatentReasoner:
         if not payload or not payload.strip():
             logger.warning("Latent reasoning: empty response from model")
             return []
-        
+
         try:
             # Use the robust normalizer
             normalized = ProviderOutputNormalizer.parse_and_normalize_safe(payload)
-            
+
             # Convert normalized dicts to Hypothesis objects
             hypotheses = []
             for hyp_dict in normalized.get("hypotheses", []):
@@ -240,15 +239,15 @@ class LatentReasoner:
                 except ValidationError as e:
                     logger.debug(f"Latent reasoning: skipping invalid hypothesis - {e}")
                     continue
-            
+
             if not hypotheses:
                 logger.warning(
                     "Latent reasoning: no valid hypotheses after normalization. "
                     f"Response (truncated): {payload[:200]}..."
                 )
-            
+
             return hypotheses
-            
+
         except Exception as e:
             logger.warning(f"Latent reasoning: failed to parse hypotheses - {e}")
             return []

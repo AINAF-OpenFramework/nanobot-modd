@@ -9,7 +9,6 @@ Handles:
 """
 
 import json
-import re
 from json import JSONDecodeError
 from typing import Any
 

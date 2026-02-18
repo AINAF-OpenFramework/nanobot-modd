@@ -25,7 +25,7 @@ MAX_ENTANGLEMENT_HOPS = 2
 class MemoryStore:
     """
     Upgraded memory system with Fractal Memory and Active Learning State.
-    
+
     Maintains backward compatibility with legacy MEMORY.md and HISTORY.md,
     while adding new capabilities:
     - Fractal nodes stored as lesson_X.json
@@ -54,7 +54,7 @@ class MemoryStore:
         self.archives_dir = ensure_dir(self.memory_dir / "archives")
         self.index_file = self.memory_dir / "fractal_index.json"
         self.als_file = self.memory_dir / "ALS.json"
-        
+
         # Pattern Cache for high-entropy latent states
         self.pattern_cache_file = self.memory_dir / "pattern_cache.jsonl"
 
@@ -97,7 +97,7 @@ class MemoryStore:
     def read_long_term(self) -> str:
         """
         Read long-term memory content.
-        
+
         Triune Memory: Prefers .yaml for token efficiency,
         falls back to .md for backward compatibility.
         """
@@ -118,7 +118,7 @@ class MemoryStore:
     def _yaml_data_to_str(self, data: dict[str, Any]) -> str:
         """
         Convert YAML memory data to string format.
-        
+
         Uses shared formatting from translator module.
         """
         from nanobot.utils.translator import yaml_data_to_context
@@ -130,7 +130,7 @@ class MemoryStore:
 
     def write_long_term(self, content: str) -> None:
         self.memory_file.write_text(content, encoding="utf-8")
-    
+
     def append_long_term(self, content: str) -> None:
         """Append to long-term memory (teaching flow entries)."""
         with open(self.memory_file, "a", encoding="utf-8") as f:
@@ -159,9 +159,9 @@ class MemoryStore:
     ) -> FractalNode:
         """
         Creates a lesson archive and updates the index.
-        
+
         Supports multi-modal content (text, code, images) and hierarchical relationships.
-        
+
         Args:
             content: The core lesson/fact content
             tags: List of tags for categorization and retrieval
@@ -171,7 +171,7 @@ class MemoryStore:
             binary_data: Base64-encoded binary data for images
             mime_type: MIME type for binary data
             parent_id: ID of parent node (for hierarchical relationships)
-        
+
         Returns:
             The created FractalNode
         """
@@ -413,11 +413,11 @@ class MemoryStore:
     def retrieve_relevant_nodes(self, query: str, k: int = 5) -> str:
         """
         Token-efficient retrieval using semantic search (mem0) or keyword matching (local).
-        
+
         Args:
             query: Search query
             k: Number of top results to return
-        
+
         Returns:
             Formatted string with relevant memory nodes
         """
@@ -522,7 +522,7 @@ class MemoryStore:
     def get_als_context(self) -> str:
         """
         Returns the Active Learning State summary for context.
-        
+
         Returns:
             Formatted ALS summary
         """
@@ -548,7 +548,7 @@ class MemoryStore:
     ) -> None:
         """
         Update the Active Learning State.
-        
+
         Args:
             focus: New focus area (optional)
             reflection: New reflection to add (optional)
@@ -596,13 +596,13 @@ class MemoryStore:
     ) -> None:
         """
         Route latent reasoning state based on entropy threshold.
-        
+
         - Always appends teaching flow to MEMORY.md
         - Always appends timestamped entry to HISTORY.md
         - Routes to Fractal Memory if entropy < threshold (low entropy = clear intent)
         - Routes to Pattern Cache otherwise (high entropy = ambiguous)
         - Updates ALS with routing decision
-        
+
         Args:
             user_message: The user's input message
             hypotheses: List of hypothesis dicts (intent, confidence, reasoning)
@@ -612,24 +612,24 @@ class MemoryStore:
             provider: Provider name (optional, for metadata)
         """
         from datetime import datetime
-        
+
         threshold = float(self.config.get("clarify_entropy_threshold", 0.8))
         timestamp = datetime.now()
-        
+
         # Format teaching flow entry for MEMORY.md
         teaching_entry = self._format_teaching_flow(
             timestamp, user_message, hypotheses, entropy, strategic_direction
         )
-        
+
         # Append to MEMORY.md
         self.append_long_term(teaching_entry)
-        
+
         # Append to HISTORY.md
         history_entry = f"[{timestamp.strftime('%Y-%m-%d %H:%M')}] User message: {user_message[:100]}..."
         if len(user_message) > 100:
             history_entry += f"\nLatent reasoning: entropy={entropy:.3f}, hypotheses={len(hypotheses)}"
         self.append_history(history_entry)
-        
+
         # Route based on entropy
         if entropy < threshold:
             # Low entropy -> Fractal Memory (clear, structured intent)
@@ -643,7 +643,7 @@ class MemoryStore:
             )
             destination = "pattern_cache"
             logger.info(f"Routed to Pattern Cache: entropy={entropy:.3f} >= threshold={threshold}")
-        
+
         # Update ALS with routing decision
         reflection = (
             f"Latent routing: {destination} (entropy={entropy:.3f}, threshold={threshold}). "
@@ -684,17 +684,17 @@ class MemoryStore:
             top_intent = hypotheses[0].get("intent", "")
             # Simple tag extraction from intent
             tags.extend(top_intent.lower().split()[:3])
-        
+
         # Create summary
         summary = f"Low-entropy latent state (ε={entropy:.3f}): {strategic_direction[:80]}"
-        
+
         # Save as fractal node
         content = f"User message: {user_message}\n\n"
         content += f"Strategic direction: {strategic_direction}\n\n"
         content += "Hypotheses:\n"
         for hyp in hypotheses:
             content += f"- {hyp.get('intent', 'unknown')} ({hyp.get('confidence', 0.0):.2f})\n"
-        
+
         self.save_fractal_node(
             content=content,
             tags=tags,
@@ -712,7 +712,7 @@ class MemoryStore:
     ) -> None:
         """Route high-entropy state to Pattern Cache."""
         from datetime import datetime
-        
+
         record = {
             "timestamp": datetime.now().isoformat(),
             "user_message": user_message,
@@ -720,13 +720,13 @@ class MemoryStore:
             "entropy": entropy,
             "strategic_direction": strategic_direction,
         }
-        
+
         # Add model/provider metadata if available
         if model:
             record["model"] = model
         if provider:
             record["provider"] = provider
-        
+
         # Append to pattern cache (JSONL format)
         with open(self.pattern_cache_file, "a", encoding="utf-8") as f:
             f.write(json.dumps(record, ensure_ascii=False) + "\n")
@@ -734,16 +734,16 @@ class MemoryStore:
     def get_pattern_cache_entries(self, limit: int = 10) -> list[dict[str, Any]]:
         """
         Retrieve recent entries from pattern cache.
-        
+
         Args:
             limit: Maximum number of entries to return (most recent first)
-            
+
         Returns:
             List of pattern cache records
         """
         if not self.pattern_cache_file.exists():
             return []
-        
+
         entries = []
         with open(self.pattern_cache_file, "r", encoding="utf-8") as f:
             for line in f:
@@ -753,7 +753,7 @@ class MemoryStore:
                         entries.append(json.loads(line))
                     except json.JSONDecodeError as e:
                         logger.warning(f"Invalid JSON in pattern cache: {e}")
-        
+
         # Return most recent first
         return entries[-limit:][::-1]
 
@@ -762,10 +762,10 @@ class MemoryStore:
     def get_node_by_id(self, node_id: str) -> FractalNode | None:
         """
         Get a specific node by ID.
-        
+
         Args:
             node_id: The node ID
-            
+
         Returns:
             The FractalNode or None if not found
         """
@@ -785,10 +785,10 @@ class MemoryStore:
     def get_children(self, node_id: str) -> list[FractalNode]:
         """
         Get all child nodes of a given node.
-        
+
         Args:
             node_id: Parent node ID
-            
+
         Returns:
             List of child FractalNodes
         """
@@ -807,10 +807,10 @@ class MemoryStore:
     def get_parent(self, node_id: str) -> FractalNode | None:
         """
         Get the parent node of a given node.
-        
+
         Args:
             node_id: Child node ID
-            
+
         Returns:
             Parent FractalNode or None
         """
@@ -823,11 +823,11 @@ class MemoryStore:
     def get_hierarchy_tree(self, root_id: str, max_depth: int = 3) -> dict:
         """
         Get a hierarchical tree structure starting from a root node.
-        
+
         Args:
             root_id: Root node ID
             max_depth: Maximum depth to traverse
-            
+
         Returns:
             Dictionary representing the tree structure
         """
@@ -868,14 +868,14 @@ class MemoryStore:
     ) -> FractalNode:
         """
         Save a code snippet as a fractal node.
-        
+
         Args:
             code: The code content
             language: Programming language (python, javascript, etc.)
             tags: Tags for categorization
             summary: Brief summary
             parent_id: Optional parent node ID
-            
+
         Returns:
             The created FractalNode
         """
@@ -898,14 +898,14 @@ class MemoryStore:
     ) -> FractalNode:
         """
         Save an image as a fractal node.
-        
+
         Args:
             image_path: Path to the image file
             tags: Tags for categorization
             summary: Brief summary
             description: Optional text description of the image
             parent_id: Optional parent node ID
-            
+
         Returns:
             The created FractalNode
         """
@@ -940,10 +940,10 @@ class MemoryStore:
     def get_image_data(self, node_id: str) -> tuple[bytes, str] | None:
         """
         Get decoded image data from a node.
-        
+
         Args:
             node_id: The node ID
-            
+
         Returns:
             Tuple of (image_bytes, mime_type) or None
         """
@@ -969,12 +969,12 @@ class MemoryStore:
     ) -> list[FractalNode]:
         """
         Search nodes by content type.
-        
+
         Args:
             content_type: The content type to filter by
             tags: Optional tags to filter by
             limit: Maximum number of results
-            
+
         Returns:
             List of matching FractalNodes
         """
